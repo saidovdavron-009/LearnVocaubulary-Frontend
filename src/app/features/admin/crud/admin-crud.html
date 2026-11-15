@@ -1,0 +1,182 @@
+@let cfg = config();
+<header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <h1 class="font-display text-h1 text-fg">{{ cfg.title }}</h1>
+    <p class="mt-1 text-body-lg text-fg-secondary">{{ cfg.subtitle }}</p>
+  </div>
+  <button appButton type="button" icon="plus" (click)="openCreate()">Yangi {{ cfg.singular }}</button>
+</header>
+
+<section class="overflow-hidden rounded-2xl border-2 border-line bg-surface" [attr.aria-label]="cfg.title">
+  <div class="flex items-center justify-between gap-3 px-5 pt-4.5 pb-4">
+    <label class="flex h-11 w-full max-w-80 items-center gap-2 rounded-lg border-2 border-line bg-page px-3.5 focus-within:border-violet focus-within:shadow-focus">
+      <app-icon name="search" [size]="18" class="text-fg-muted" />
+      <span class="sr-only">Qidirish</span>
+      <input type="search" placeholder="Qidirish..." class="min-w-0 flex-1 bg-transparent text-body font-semibold text-fg outline-none placeholder:text-fg-muted" (input)="onSearch($event)" />
+    </label>
+    @if (list.hasValue()) {
+      <span class="text-body-strong text-fg-secondary">Jami: {{ formatNumber(list.value().totalCount) }}</span>
+    }
+  </div>
+
+  @if (list.isLoading() && !list.hasValue()) {
+    <div class="flex flex-col gap-2 px-5 pb-5">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <app-skeleton class="h-12" />
+      }
+    </div>
+  } @else if (list.error()) {
+    <app-error-state (retry)="list.reload()" />
+  } @else {
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-200 border-collapse text-left">
+        <thead class="bg-muted">
+          <tr class="text-label-caps text-fg-secondary uppercase">
+            @for (col of cfg.columns; track col.key; let first = $first) {
+              <th class="px-2.5 py-3.5" [class.pl-5]="first">{{ col.label }}</th>
+            }
+            <th class="py-3.5 pr-5 pl-2.5"><span class="sr-only">Amallar</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of list.value()?.data ?? []; track row.id) {
+            <tr class="border-t border-muted hover:bg-page">
+              @for (col of cfg.columns; track col.key; let first = $first) {
+                <td class="px-2.5 py-3" [class.pl-5]="first">
+                  @switch (col.type) {
+                    @case ('strong') {
+                      <span class="text-body-strong text-fg">{{ cell(row, col) }}</span>
+                    }
+                    @case ('tag') {
+                      @if (cell(row, col) !== '—') {
+                        <span class="rounded-sm bg-muted px-2.5 py-1.25 text-label text-fg-secondary">{{ cell(row, col) }}</span>
+                      } @else {
+                        <span class="text-fg-muted">—</span>
+                      }
+                    }
+                    @case ('bool') {
+                      @if (row[col.key]) {
+                        <span class="inline-flex items-center gap-1 text-label text-mint-text"><app-icon name="check" [size]="16" /> Ha</span>
+                      } @else {
+                        <span class="text-label text-fg-muted">Yo'q</span>
+                      }
+                    }
+                    @default {
+                      <span class="text-body font-semibold text-fg-secondary">{{ cell(row, col) }}</span>
+                    }
+                  }
+                </td>
+              }
+              <td class="py-3 pr-5 pl-2.5">
+                <div class="flex justify-end gap-1">
+                  <button type="button" class="flex size-8 items-center justify-center rounded-md text-fg-secondary hover:bg-muted hover:text-fg" aria-label="Tahrirlash" (click)="openEdit(row)">
+                    <app-icon name="edit" [size]="18" />
+                  </button>
+                  <button
+                    type="button"
+                    class="flex size-8 items-center justify-center rounded-md text-fg-secondary hover:bg-coral-soft hover:text-coral-text disabled:opacity-40"
+                    aria-label="O'chirish"
+                    [disabled]="busyId() === row.id"
+                    (click)="remove(row)"
+                  >
+                    <app-icon name="trash" [size]="18" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="cfg.columns.length + 1" class="px-5 py-12 text-center text-body text-fg-muted">Hech narsa topilmadi.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (list.hasValue()) {
+      <app-pagination
+        class="border-t-2 border-line px-5 py-4"
+        [page]="list.value().page"
+        [pageSize]="pageSize()"
+        [totalCount]="list.value().totalCount"
+        [totalPages]="list.value().totalPages"
+        [pageSizeOptions]="[20, 50, 100]"
+        (pageChange)="page.set($event)"
+        (pageSizeChange)="pageSize.set($event); page.set(1)"
+      />
+    }
+  }
+</section>
+
+<app-modal [(open)]="formOpen" [title]="(editingId() === null ? 'Yangi ' : 'Tahrirlash: ') + cfg.singular" [width]="640">
+  <form id="crud-form" class="grid gap-4 sm:grid-cols-2" (submit)="$event.preventDefault(); save()">
+    @if (loadingItem()) {
+      <p class="col-span-full text-caption text-fg-muted" role="status">To'liq ma'lumot yuklanmoqda...</p>
+    }
+    @for (f of visibleFields(); track f.key) {
+      @switch (f.type) {
+        @case ('checkbox') {
+          <label class="col-span-full flex items-center gap-2.5 text-body-strong text-fg">
+            <input type="checkbox" class="size-5 accent-[var(--color-violet)]" [checked]="!!value(f.key)" (change)="setValue(f, $event)" />
+            {{ f.label }}
+          </label>
+        }
+        @case ('categories') {
+          <fieldset class="col-span-full flex flex-col gap-2">
+            <legend class="mb-2 text-label text-fg">{{ f.label }}</legend>
+            <div class="flex flex-wrap gap-2">
+              @for (c of options('parentCategories'); track c.value) {
+                <button
+                  type="button"
+                  class="rounded-full border-2 px-3 py-1.5 text-label transition-colors"
+                  [class]="hasCategory(c.value) ? 'border-violet bg-violet-soft text-violet-text' : 'border-line text-fg-secondary hover:border-line-strong'"
+                  [attr.aria-pressed]="hasCategory(c.value)"
+                  (click)="toggleCategory(c.value)"
+                >
+                  {{ c.label }}
+                </button>
+              } @empty {
+                <span class="text-caption text-fg-muted">Kategoriyalar yo'q.</span>
+              }
+            </div>
+          </fieldset>
+        }
+        @default {
+          <label class="flex flex-col gap-2" [class.col-span-full]="f.type === 'textarea'">
+            <span class="text-label text-fg">{{ f.label }}@if (f.required) {<span class="text-coral-strong"> *</span>}</span>
+            @if (f.type === 'select') {
+              <app-select
+                [label]="f.label"
+                [hideLabel]="true"
+                [options]="selectOptions(f)"
+                [selected]="selectValue(f.key)"
+                (selectedChange)="setSelect(f, $event)"
+              />
+            } @else if (f.type === 'textarea') {
+              <textarea
+                rows="3"
+                class="rounded-input border-2 border-line bg-surface px-3.5 py-3 text-body text-fg outline-none focus:border-violet focus:shadow-focus"
+                [value]="str(f.key)"
+                (input)="setValue(f, $event)"
+              ></textarea>
+            } @else {
+              <input
+                [type]="f.type === 'number' ? 'number' : 'text'"
+                class="h-12 rounded-input border-2 border-line bg-surface px-3.5 text-body font-semibold text-fg outline-none placeholder:font-normal placeholder:text-fg-muted focus:border-violet focus:shadow-focus"
+                [placeholder]="f.placeholder ?? ''"
+                [value]="str(f.key)"
+                (input)="setValue(f, $event)"
+              />
+            }
+            @if (f.hint) {
+              <span class="text-caption text-fg-muted">{{ f.hint }}</span>
+            }
+          </label>
+        }
+      }
+    }
+  </form>
+  <div modal-actions class="contents">
+    <button appButton type="button" variant="secondary" (click)="formOpen.set(false)">Bekor qilish</button>
+    <button appButton type="submit" form="crud-form" icon="check" [loading]="saving()">Saqlash</button>
+  </div>
+</app-modal>

@@ -1,0 +1,245 @@
+@import 'tailwindcss';
+
+/*
+ * So'zchi dizayn tizimi — Figma "2. Komponentlar va ranglar" sahifasidan.
+ * Kodda faqat shu tokenlar ishlatiladi; Tailwind'ning standart ranglari,
+ * shriftlari va radiuslari o'chirilgan.
+ */
+@theme {
+  /* ---------- Ranglar ---------- */
+  --color-*: initial;
+
+  /* Fon */
+  --color-page: #f6f5ff;
+  --color-surface: #ffffff;
+  --color-muted: #f0eefb;
+
+  /* Chegara */
+  --color-line: #ece9ff;
+  --color-line-strong: #d6d0f5;
+
+  /* Matn (fg = foreground) */
+  --color-fg: #1b1640;
+  --color-fg-secondary: #4a4570;
+  --color-fg-muted: #6b6690;
+  --color-fg-inverse: #ffffff;
+
+  /* Brand */
+  --color-violet: #5b2eff;
+  --color-violet-deep: #3a16c7;
+  --color-violet-soft: #efe9ff;
+  --color-violet-soft-deep: #d9cfff; /* Soft tugma soyasi (Figma) */
+  --color-violet-text: #4b22d6;
+  --color-ink: #1b1640;
+  --color-black: #000000; /* Dark tugma soyasi (Figma) */
+
+  /* Sariq */
+  --color-yellow: #ffc83d;
+  --color-yellow-deep: #d9a10f; /* Sariq tugma/kartochka soyasi (Figma) */
+  --color-yellow-soft: #fff3cc;
+  --color-yellow-text: #7a4d00;
+
+  /* Marjon */
+  --color-coral: #ff8a6b;
+  --color-coral-strong: #ff5a3c;
+  --color-coral-soft: #ffe7df;
+  --color-coral-text: #b42d0e;
+
+  /* Yalpiz */
+  --color-mint: #22c493;
+  --color-mint-deep: #14a378; /* Yalpiz kartochka soyasi (Figma: 09 Deck hero) */
+  --color-mint-soft: #ddf8ee;
+  --color-mint-text: #0b6b4c;
+
+  /* Ko'k */
+  --color-blue: #7ea6ff;
+  --color-blue-soft: #e6eeff;
+  --color-blue-text: #1f4fd1;
+
+  /* ---------- Shriftlar ---------- */
+  --font-*: initial;
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+
+  /* ---------- Matn o'lchamlari ---------- */
+  --text-*: initial;
+
+  --text-display: 64px;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -2px;
+  --text-display--font-weight: 800;
+
+  --text-h1: 44px;
+  --text-h1--line-height: 1.1;
+  --text-h1--letter-spacing: -1px;
+  --text-h1--font-weight: 800;
+
+  --text-h2: 28px;
+  --text-h2--line-height: 1.2;
+  --text-h2--letter-spacing: -0.5px;
+  --text-h2--font-weight: 800;
+
+  --text-h3: 20px;
+  --text-h3--line-height: 1.3;
+  --text-h3--font-weight: 700;
+
+  --text-number: 36px;
+  --text-number--line-height: 1.1;
+  --text-number--font-weight: 800;
+
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 1.6;
+
+  --text-body: 15px;
+  --text-body--line-height: 1.5;
+
+  --text-body-strong: 15px;
+  --text-body-strong--line-height: 1.4;
+  --text-body-strong--font-weight: 800;
+
+  /* Tugma L matni (Figma: Nunito 800, 17px) */
+  --text-button: 17px;
+  --text-button--line-height: 1.4;
+  --text-button--font-weight: 800;
+
+  --text-label: 13px;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 800;
+
+  --text-label-caps: 12px;
+  --text-label-caps--line-height: 1.4;
+  --text-label-caps--letter-spacing: 0.6px;
+  --text-label-caps--font-weight: 800;
+
+  --text-caption: 12px;
+  --text-caption--line-height: 1.4;
+  --text-caption--font-weight: 700;
+
+  /* ---------- Burchak radiuslari ---------- */
+  --radius-*: initial;
+  --radius-xs: 6px;
+  --radius-sm: 8px; /* tag */
+  --radius-md: 10px; /* tugma S */
+  --radius-lg: 12px; /* tugma M */
+  --radius-input: 14px; /* input, sidebar elementi */
+  --radius-xl: 16px; /* tugma L */
+  --radius-card: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+  --radius-4xl: 32px; /* katta bannerlar */
+
+  /* ---------- Soyalar ----------
+   * "Qattiq soya": xiralashmagan, pastga siljigan. Rangi shadow-<rang>
+   * utility bilan beriladi, masalan: shadow-hard shadow-violet-deep.
+   */
+  --shadow-*: initial;
+  --shadow-hard-sm: 0 2px 0 0 #3a16c7;
+  --shadow-hard: 0 4px 0 0 #3a16c7;
+  --shadow-hard-md: 0 5px 0 0 #3a16c7;
+  --shadow-hard-lg: 0 8px 0 0 #3a16c7;
+  /* Figma: Shadow/Card */
+  --shadow-card: 0 20px 50px 0 rgb(59 23 199 / 0.1);
+  /* Input Focus halqasi */
+  --shadow-focus: 0 0 0 4px rgb(92 46 255 / 0.18);
+  /* Toggle tugmachasi */
+  --shadow-knob: 0 1px 2px 0 rgb(27 22 64 / 0.2);
+
+  /* ---------- Animatsiya (300ms dan oshmaydi) ---------- */
+  --default-transition-duration: 150ms;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-page font-sans text-body text-fg;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-violet);
+    outline-offset: 2px;
+  }
+}
+
+/* ---------- Yengil animatsiyalar (≤ 300ms) ---------- */
+@utility fade-in {
+  animation: fade-in 200ms ease-out;
+}
+
+@utility slide-in-left {
+  animation: slide-in-left 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@utility toast-enter {
+  animation: toast-enter 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Skeleton: yumshoq miltillash (yuklanish davomida takrorlanadi) */
+@utility skeleton {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+/* Modal ochilishi */
+@utility modal-enter {
+  &[open] {
+    animation: modal-enter 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  &[open]::backdrop {
+    animation: fade-in 200ms ease-out;
+  }
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

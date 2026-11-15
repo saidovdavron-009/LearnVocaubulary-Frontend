@@ -1,0 +1,75 @@
+<nav aria-label="Kirish yoki ro'yxatdan o'tish" class="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+  <a
+    routerLink="/login"
+    class="flex h-11 items-center justify-center rounded-lg text-body-strong text-fg-secondary transition-colors hover:text-fg"
+  >
+    Kirish
+  </a>
+  <a
+    routerLink="/register"
+    aria-current="page"
+    class="flex h-11 items-center justify-center rounded-lg bg-surface text-body-strong text-fg shadow-hard shadow-line"
+  >
+    Ro'yxatdan o'tish
+  </a>
+</nav>
+
+<h1 class="font-display text-h1 text-fg">Hisob yarating</h1>
+<p class="mt-2 text-body-lg text-fg-secondary">Ro'yxatdan o'tish bepul. Kunlik maqsadni o'zingiz belgilaysiz.</p>
+
+<app-oauth-buttons />
+
+<form [formGroup]="form" class="mt-5 flex flex-col gap-5" novalidate (ngSubmit)="submit()">
+  @if (error()) {
+    <app-alert>{{ error() }}</app-alert>
+  }
+
+  <app-input
+    label="Ko'rinadigan ism"
+    icon="user"
+    placeholder="Asilbek Ahmedov"
+    autocomplete="name"
+    helper="Ixtiyoriy"
+    formControlName="displayName"
+  />
+  <app-input
+    label="Username"
+    placeholder="asilbek"
+    autocomplete="username"
+    formControlName="username"
+    [errorMessages]="{
+      required: 'Username kiriting',
+      pattern: 'Username 3–50 belgi: lotin harflari, raqamlar, “_” va “.”',
+    }"
+  />
+  <app-input
+    label="Email"
+    icon="mail"
+    type="email"
+    placeholder="siz@example.com"
+    autocomplete="email"
+    formControlName="email"
+    [errorMessages]="{ required: 'Email kiriting' }"
+  />
+  <app-input
+    label="Parol"
+    icon="lock"
+    type="password"
+    placeholder="••••••••"
+    autocomplete="new-password"
+    helper="Kamida 8 belgi, harf va raqam bilan"
+    formControlName="password"
+    [errorMessages]="{
+      required: 'Parol kiriting',
+      pattern: 'Parolda kamida bitta harf va bitta raqam bo‘lishi kerak',
+    }"
+  />
+
+  <button appButton type="submit" size="l" icon="arrow-right" [block]="true" [loading]="loading()">
+    Ro'yxatdan o'tish
+  </button>
+
+  <p class="text-center text-caption text-fg-muted">
+    Ro'yxatdan o'tish orqali siz Foydalanish shartlari va Maxfiylik siyosatiga rozilik bildirasiz.
+  </p>
+</form>

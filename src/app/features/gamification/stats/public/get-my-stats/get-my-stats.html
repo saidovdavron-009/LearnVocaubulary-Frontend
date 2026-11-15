@@ -1,0 +1,219 @@
+<!-- Davr -->
+<div class="flex self-start rounded-xl border-2 border-line bg-surface p-1" role="radiogroup" aria-label="Davr">
+  @for (p of periods; track p.id) {
+    <button
+      type="button"
+      role="radio"
+      [attr.aria-checked]="period() === p.id"
+      class="h-8.75 rounded-md px-4 text-label transition-colors"
+      [class]="period() === p.id ? 'bg-ink text-fg-inverse' : 'text-fg-secondary hover:text-fg'"
+      (click)="period.set(p.id)"
+    >
+      {{ p.label }}
+    </button>
+  }
+</div>
+
+<!-- 5 ta ko'rsatkich -->
+<div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+  @if (cards(); as list) {
+    @for (c of list; track c.label) {
+      <div class="flex flex-col gap-2.5 rounded-[22px] px-5 py-4.5 shadow-hard-md" [class]="c.box">
+        <app-icon [name]="c.icon" [size]="24" />
+        <p class="mt-1 font-display text-h2">{{ c.value }}</p>
+        <p class="text-label">{{ c.label }}</p>
+      </div>
+    }
+  } @else if (stats.error() || activity.error()) {
+    <div class="col-span-full rounded-2xl border-2 border-line bg-surface">
+      <app-error-state (retry)="stats.reload(); activity.reload()" />
+    </div>
+  } @else {
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+      <app-skeleton class="h-32.75 rounded-[22px]" />
+    }
+  }
+</div>
+
+<!-- Faollik kalendari -->
+<section class="rounded-2xl border-2 border-line bg-surface px-6 py-5.5" aria-labelledby="calendar-title">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <h2 id="calendar-title" class="font-display text-h3 text-fg">Faollik kalendari</h2>
+    <div class="flex items-center gap-1.5 text-caption text-fg-muted" aria-hidden="true">
+      Kam
+      @for (h of heat; track h) {
+        <span class="size-3.5 rounded-xs" [class]="h"></span>
+      }
+      Ko'p
+    </div>
+  </div>
+  @if (calendar(); as cal) {
+    <div class="overflow-x-auto pb-1">
+      <div class="flex min-w-180 gap-1 lg:gap-1.5" role="img" aria-label="Oxirgi bir yildagi kunlik faollik">
+        <div class="flex w-5 flex-col gap-1.25 pr-1">
+          @for (d of weekdayRows; track $index) {
+            <span class="h-3.5 text-[11px] leading-3.5 font-bold text-fg-muted">{{ d }}</span>
+          }
+        </div>
+        @for (week of cal.weeks; track $index) {
+          <div class="flex min-w-0 flex-1 flex-col gap-1.25">
+            @for (day of week; track $index) {
+              <span class="h-3.5 rounded-xs" [class]="day.future ? 'bg-transparent' : heat[day.level]" [attr.title]="day.future ? null : day.title"></span>
+            }
+          </div>
+        }
+      </div>
+      <div class="relative mt-3 ml-6.5 h-4 min-w-173.5">
+        @for (m of cal.months; track $index) {
+          <span class="absolute text-caption text-fg-muted" [style.left.%]="(m.col / 52) * 100">{{ m.label }}</span>
+        }
+      </div>
+    </div>
+  } @else if (year.error()) {
+    <app-error-state (retry)="year.reload()" />
+  } @else {
+    <app-skeleton class="h-32" />
+  }
+</section>
+
+<div class="grid gap-5 xl:grid-cols-[1fr_380px]">
+  <!-- Kunlik XP -->
+  <section class="rounded-2xl border-2 border-line bg-surface px-6 py-5.5" aria-labelledby="xp-title">
+    <div class="mb-6 flex items-center justify-between gap-3">
+      <h2 id="xp-title" class="font-display text-h3 text-fg">{{ xpTitle() }}</h2>
+      @if (xpChart(); as chart) {
+        <span class="text-body-strong text-violet-text">O'rtacha: {{ chart.avg }} XP</span>
+      }
+    </div>
+    @if (xpChart(); as chart) {
+      <div class="flex h-42 items-end gap-1 sm:gap-1.5" role="img" [attr.aria-label]="xpTitle() + ', o‘rtacha ' + chart.avg + ' XP'">
+        @for (b of chart.bars; track $index) {
+          <span
+            class="min-w-0 flex-1 rounded-t-md rounded-b-xs transition-[height] duration-300"
+            [class]="b.today ? 'bg-yellow' : b.high ? 'bg-violet' : 'bg-muted'"
+            [style.height.%]="b.height"
+            [attr.title]="b.title"
+          ></span>
+        }
+      </div>
+      <div class="mt-3 flex gap-1 sm:gap-1.5" aria-hidden="true">
+        @for (b of chart.bars; track $index) {
+          <span class="min-w-0 flex-1 overflow-visible text-caption whitespace-nowrap text-fg-muted" [class]="b.today ? 'text-right' : ''">{{ b.label }}</span>
+        }
+      </div>
+    } @else if (activity.error()) {
+      <app-error-state (retry)="activity.reload()" />
+    } @else {
+      <app-skeleton class="h-48" />
+    }
+  </section>
+
+  <!-- So'zlar holati -->
+  <section class="rounded-2xl border-2 border-line bg-surface px-6 py-5.5" aria-labelledby="words-title">
+    <h2 id="words-title" class="mb-4 font-display text-h3 text-fg">So'zlar holati</h2>
+    @if (donut(); as d) {
+      <div class="flex flex-wrap items-center gap-5">
+        <div class="relative size-37.5 shrink-0">
+          <svg viewBox="0 0 150 150" class="size-full -rotate-90" aria-hidden="true">
+            <circle cx="75" cy="75" r="54" fill="none" stroke="var(--color-muted)" stroke-width="22" />
+            @for (s of d.segments; track s.label) {
+              @if (s.value) {
+                <circle cx="75" cy="75" r="54" fill="none" [attr.stroke]="s.color" stroke-width="22" [attr.stroke-dasharray]="s.dash" [attr.stroke-dashoffset]="s.offset" />
+              }
+            }
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="font-display text-h2 text-fg">{{ formatNumber(d.total) }}</span>
+            <span class="text-caption text-fg-muted">so'z</span>
+          </div>
+        </div>
+        <ul class="flex flex-col gap-3">
+          @for (s of d.segments; track s.label) {
+            <li class="flex items-center gap-2 text-body text-fg-secondary">
+              <span class="size-2.5 rounded-xs" [class]="s.dot"></span>
+              {{ s.label }} <span class="text-body-strong text-fg">{{ formatNumber(s.value) }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    } @else if (stats.error()) {
+      <app-error-state (retry)="stats.reload()" />
+    } @else {
+      <app-skeleton class="h-37.5" />
+    }
+  </section>
+</div>
+
+<div class="grid gap-5 xl:grid-cols-[456px_1fr]">
+  <!-- Mashq turlari -->
+  <section class="rounded-2xl border-2 border-line bg-surface px-6 py-5.5" aria-labelledby="exercise-title">
+    <h2 id="exercise-title" class="mb-5 font-display text-h3 text-fg">Mashq turlari bo'yicha aniqlik</h2>
+    @if (accuracy.isLoading() && !accuracy.hasValue()) {
+      <app-skeleton class="h-72" />
+    } @else if (accuracy.error()) {
+      <app-error-state (retry)="accuracy.reload()" />
+    } @else {
+      <ul class="flex flex-col gap-4">
+        @for (e of exercises(); track e.type) {
+          <li class="flex items-center gap-3">
+            <span class="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-fg-secondary"><app-icon [name]="e.icon" [size]="18" /></span>
+            <span class="w-38 shrink-0 text-body font-semibold text-fg">{{ e.label }}</span>
+            <div class="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+              @if (e.total) {
+                <div class="h-full rounded-full" [class]="e.color" [style.width.%]="e.percent"></div>
+              }
+            </div>
+            <span class="w-11 text-right text-body-strong" [class]="e.total ? 'text-fg' : 'text-fg-muted'">{{ e.total ? e.percent + '%' : '—' }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- Yutuqlar -->
+  <section class="rounded-2xl border-2 border-line bg-surface px-6 py-5.5" aria-labelledby="ach-title">
+    <div class="mb-5 flex items-center justify-between gap-3">
+      <h2 id="ach-title" class="font-display text-h3 text-fg">Yutuqlar</h2>
+      @if (achievements.hasValue()) {
+        <span class="text-body-strong text-fg-secondary">{{ achievements.value().earnedCount }} / {{ achievements.value().totalCount }} ochildi</span>
+      }
+    </div>
+    @if (achievementList(); as list) {
+      @if (!list.length) {
+        <p class="py-8 text-center text-body text-fg-muted">Hozircha yutuqlar qo'shilmagan.</p>
+      } @else {
+        <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          @for (a of list; track a.id) {
+            <li
+              class="flex flex-col gap-1.5 rounded-card p-3.5"
+              [class]="a.isEarned ? 'bg-page' : 'border-2 border-dashed border-line-strong'"
+            >
+              <span
+                class="mb-1.5 flex size-12 items-center justify-center rounded-input"
+                [class]="a.isEarned ? a.style.box + ' text-fg shadow-hard-sm shadow-black/15' : 'bg-muted text-fg-muted'"
+              >
+                <app-icon [name]="a.style.icon" [size]="22" />
+              </span>
+              <p class="text-body-strong" [class]="a.isEarned ? 'text-fg' : 'text-fg-secondary'">{{ a.title }}</p>
+              <p class="text-caption text-fg-muted">{{ a.description }}</p>
+              @if (a.isEarned) {
+                <p class="mt-auto flex items-center gap-1 pt-1 text-caption text-mint-text"><app-icon name="check" [size]="14" /> +{{ a.xpReward }} XP</p>
+              } @else {
+                <div class="mt-auto flex items-center gap-2 pt-1">
+                  <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div class="h-full rounded-full bg-violet" [style.width.%]="a.percent"></div>
+                  </div>
+                  <span class="text-caption text-fg-secondary">{{ a.percent }}%</span>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    } @else if (achievements.error()) {
+      <app-error-state (retry)="achievements.reload()" />
+    } @else {
+      <app-skeleton class="h-64" />
+    }
+  </section>
+</div>

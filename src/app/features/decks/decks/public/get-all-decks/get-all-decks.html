@@ -1,0 +1,123 @@
+<!-- Tablar, daraja filtri va "Yangi to'plam" -->
+<div class="flex flex-col gap-3 xl:flex-row xl:items-center">
+  <div role="tablist" aria-label="To'plamlar" class="flex gap-2 overflow-x-auto pb-1">
+    @for (s of scopes; track s.scope) {
+      <button appTab [active]="scope() === s.scope" [count]="countFor(s.scope)" (click)="setScope(s.scope)">{{ s.label }}</button>
+    }
+  </div>
+  <div class="flex flex-wrap items-center gap-3 xl:ml-auto">
+    <div class="flex gap-1 rounded-xl border-2 border-line bg-surface p-1" role="radiogroup" aria-label="Daraja">
+      @for (l of levels; track l) {
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="level() === l"
+          class="h-8 min-w-9.5 rounded-md px-2 text-label transition-colors"
+          [class]="level() === l ? 'bg-ink text-fg-inverse' : 'text-fg-secondary hover:text-fg'"
+          (click)="setLevel(l)"
+        >
+          {{ l.toUpperCase() }}
+        </button>
+      }
+    </div>
+    <app-create-my-deck />
+  </div>
+</div>
+
+<!-- Haftaning to'plami -->
+@if (featured.hasValue() ? featured.value() : null; as f) {
+  <section
+    class="relative min-h-62.5 overflow-hidden rounded-3xl bg-ink px-6 py-7.5 text-fg-inverse md:px-8"
+    aria-labelledby="featured-title"
+  >
+    <div class="pointer-events-none absolute inset-y-0 right-0 hidden w-90 md:block" aria-hidden="true">
+      <span class="absolute top-10 right-49 h-45 w-37.5 rotate-8 rounded-2xl bg-yellow"></span>
+      <span class="absolute top-13 right-18 h-45 w-37.5 -rotate-6 rounded-2xl bg-coral"></span>
+      <span class="absolute top-6 -right-3.5 h-45 w-37.5 rotate-3 rounded-2xl bg-mint"></span>
+    </div>
+    <div class="relative flex max-w-137 flex-col items-start gap-3">
+      <span class="rounded-full bg-yellow px-3 py-1.25 text-label text-fg">Haftaning to'plami</span>
+      <h2 id="featured-title" class="font-display text-h2 text-fg-inverse md:text-h1">{{ f.title }}</h2>
+      <p class="text-body-lg text-line-strong">
+        {{ f.description || formatNumber(f.wordsCount) + " ta so'z" }}
+      </p>
+      <div class="pt-1">
+        @if (f.isStarted) {
+          <a appButton [routerLink]="['/study']" [queryParams]="{ deckId: f.id }" variant="yellow" icon="play">Davom etish</a>
+        } @else {
+          <a appButton [routerLink]="['/decks', f.id]" variant="yellow" icon="play">Boshlash</a>
+        }
+      </div>
+    </div>
+  </section>
+}
+
+<!-- Kartochkalar -->
+@if (decks.isLoading() && !more().length) {
+  <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
+      <app-skeleton class="h-78 rounded-2xl" />
+    }
+  </div>
+} @else if (decks.error()) {
+  <div class="rounded-3xl border-2 border-line bg-surface"><app-error-state (retry)="decks.reload()" /></div>
+} @else if (items().length === 0) {
+  <div class="rounded-3xl border-2 border-line bg-surface">
+    @if (scope() === 'mine') {
+      <app-empty-state icon="layers" title="Sizda hali to'plam yo'q" text="O'zingizga qulay so'zlar to'plamini yarating." />
+    } @else if (scope() === 'started') {
+      <app-empty-state icon="play" title="Hali to'plam boshlanmagan" text="Ommaviy to'plamlardan birini tanlab, «Qo'shish» tugmasini bosing.">
+        <button appButton type="button" variant="soft" size="s" (click)="setScope('public')">Ommaviy to'plamlar</button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state icon="layers" title="To'plam topilmadi" [text]="level() ? 'Boshqa darajani tanlab ko‘ring.' : null" />
+    }
+  </div>
+} @else {
+  <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    @for (deck of items(); track deck.id) {
+      @let started = isStarted(deck);
+      <article class="flex flex-col overflow-hidden rounded-2xl border-2 border-line bg-surface">
+        <a [routerLink]="['/decks', deck.id]" class="relative block" [attr.aria-label]="deck.title">
+          <app-deck-cover class="h-30" [deckId]="deck.id" [title]="deck.title" [src]="deck.coverUrl" />
+          @if (deck.cefrLevel) {
+            <span class="absolute top-3.5 left-3.5 rounded-sm bg-muted px-2.5 py-1.25 text-label text-fg-secondary">
+              {{ deck.cefrLevel.toUpperCase() }}
+            </span>
+          }
+        </a>
+        <div class="flex flex-1 flex-col gap-2 px-4.5 pt-4 pb-4.5">
+          <h2 class="font-display text-h3 text-fg">
+            <a [routerLink]="['/decks', deck.id]" class="hover:text-violet-text">{{ deck.title }}</a>
+          </h2>
+          <div class="flex items-center gap-4 text-caption text-fg-secondary">
+            <span class="inline-flex items-center gap-1.5"><app-icon name="book" [size]="14" /> {{ formatNumber(deck.wordsCount) }} so'z</span>
+            <span class="inline-flex items-center gap-1.5" [attr.aria-label]="deck.learnersCount + ' foydalanuvchi'">
+              <app-icon name="users" [size]="14" /> {{ formatNumber(deck.learnersCount) }}
+            </span>
+          </div>
+          <p class="text-caption text-fg-muted">{{ owner(deck) }}</p>
+          @if (started) {
+            <div class="mt-2 flex items-center gap-3">
+              <app-progress-bar class="flex-1" [value]="deck.progress" color="mint" [label]="deck.title + ' progressi'" />
+              <span class="text-label text-fg-secondary">{{ deck.progress }}%</span>
+            </div>
+          }
+          <div class="mt-auto pt-3">
+            @if (started) {
+              <a appButton [routerLink]="['/study']" [queryParams]="{ deckId: deck.id }" size="m" icon="play" [block]="true">Davom etish</a>
+            } @else {
+              <app-start-deck [deckId]="deck.id" (started)="onStarted(deck.id)" />
+            }
+          </div>
+        </div>
+      </article>
+    }
+  </div>
+
+  @if (hasNext()) {
+    <div class="flex justify-center">
+      <button appButton type="button" variant="secondary" icon="refresh" [loading]="loadingMore()" (click)="loadMore()">Ko'proq yuklash</button>
+    </div>
+  }
+}

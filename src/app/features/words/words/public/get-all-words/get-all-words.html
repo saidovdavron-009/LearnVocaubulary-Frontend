@@ -1,0 +1,230 @@
+<!-- Kunning so'zi -->
+@if (wordOfTheDay() === undefined) {
+  <app-skeleton class="h-42.5 rounded-3xl" />
+} @else if (wordOfTheDay(); as w) {
+  <section
+    class="relative overflow-hidden rounded-3xl bg-yellow px-6 py-7 shadow-hard-md shadow-yellow-deep md:px-8"
+    aria-label="Kunning so'zi"
+  >
+    <span
+      class="pointer-events-none absolute -top-15 right-7.5 hidden font-display text-[220px] leading-[1.05] tracking-[-2px] text-coral opacity-55 lg:block"
+      aria-hidden="true"
+      >Aa</span
+    >
+    <div class="relative flex flex-col gap-x-8 gap-y-4 lg:flex-row lg:items-center">
+      <div class="flex flex-col gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="rounded-full bg-ink px-3 py-1.25 text-label text-yellow">Kunning so'zi</span>
+        @if (w.cefrLevel) {
+          <app-tag color="violet">{{ w.cefrLevel.toUpperCase() }}</app-tag>
+        }
+        @if (w.partOfSpeech) {
+          <app-tag color="blue">{{ w.partOfSpeech }}</app-tag>
+        }
+      </div>
+      <div class="flex flex-wrap items-center gap-x-3.5 gap-y-1">
+        <a [routerLink]="['/words', w.id]" class="font-display text-h1 break-all text-fg hover:underline md:text-[52px] md:leading-[1.05] md:tracking-[-2px]">
+          {{ w.text }}
+        </a>
+        @if (w.transcription) {
+          <span class="text-body-lg text-yellow-text">{{ w.transcription }}</span>
+        }
+      </div>
+      @if (w.primaryTranslation) {
+        <p class="text-body-strong text-fg">{{ w.primaryTranslation }}</p>
+      }
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <app-audio-button [src]="w.audioUrl" [text]="w.text" tone="dark" [size]="56" [label]="w.text + ' talaffuzi'" />
+        <app-add-my-word [wordId]="w.id" [label]="w.text" variant="banner" />
+      </div>
+    </div>
+  </section>
+}
+
+<!-- Qidiruv va filtrlar -->
+<div class="flex flex-col gap-3 lg:flex-row">
+  <label
+    class="flex h-14 flex-1 items-center gap-3 rounded-xl border-2 border-line bg-surface pr-2 pl-4.5 transition-[border-color,box-shadow] focus-within:border-violet focus-within:shadow-focus"
+  >
+    <app-icon name="search" [size]="22" class="text-violet-text" />
+    <span class="sr-only">So'z qidirish</span>
+    <input
+      type="search"
+      placeholder="So'z yoki tarjimani qidiring..."
+      autocomplete="off"
+      class="min-w-0 flex-1 bg-transparent text-body-lg text-fg outline-none placeholder:text-fg-muted"
+      [value]="query()"
+      (input)="onSearch($event)"
+    />
+  </label>
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:flex">
+    <app-select label="Daraja" [hideLabel]="true" icon="target" class="lg:w-54" [options]="cefrOptions" [selected]="cefr() ?? ''" (selectedChange)="onCefr($event)" />
+    <app-select label="So'z turkumi" [hideLabel]="true" icon="filter" class="lg:w-47" [options]="posOptions" [selected]="pos() ?? ''" (selectedChange)="onPos($event)" />
+    <app-select
+      label="Mavzu"
+      [hideLabel]="true"
+      icon="grid"
+      class="lg:w-36"
+      [options]="categoryOptions()"
+      [selected]="category() !== null ? '' + category() : ''"
+      (selectedChange)="onCategory($event)"
+    />
+  </div>
+</div>
+
+<div role="tablist" aria-label="So'z turkumi" class="-mt-1 flex gap-2 overflow-x-auto pb-1">
+  @for (chip of posChips; track chip) {
+    <button appTab [active]="pos() === chip" (click)="pos.set(chip)">{{ chip ? posLabels[chip] : 'Hammasi' }}</button>
+  }
+</div>
+
+<!-- Natija sarlavhasi -->
+<div class="flex items-center justify-between gap-4">
+  <p class="text-body-strong text-fg-secondary" aria-live="polite">
+    @if (state() === 'ready') {
+      @if (query().trim()) {
+        "{{ query().trim() }}" bo'yicha {{ formatNumber(total()) }} ta natija
+      } @else {
+        {{ formatNumber(total()) }} ta so'z
+      }
+    }
+  </p>
+  <div class="flex gap-1 rounded-lg bg-muted p-1" role="group" aria-label="Ko'rinish">
+    <button
+      type="button"
+      class="flex size-8 items-center justify-center rounded-md"
+      [class]="view() === 'grid' ? 'bg-surface text-fg shadow-hard-sm shadow-line' : 'text-fg-muted'"
+      aria-label="Kartochkalar"
+      [attr.aria-pressed]="view() === 'grid'"
+      (click)="view.set('grid')"
+    >
+      <app-icon name="grid" [size]="16" />
+    </button>
+    <button
+      type="button"
+      class="flex size-8 items-center justify-center rounded-md"
+      [class]="view() === 'list' ? 'bg-surface text-fg shadow-hard-sm shadow-line' : 'text-fg-muted'"
+      aria-label="Ro'yxat"
+      [attr.aria-pressed]="view() === 'list'"
+      (click)="view.set('list')"
+    >
+      <app-icon name="choice" [size]="16" />
+    </button>
+  </div>
+</div>
+
+<!-- Natijalar -->
+@switch (state()) {
+  @case ('loading') {
+    <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <app-skeleton class="h-74 rounded-2xl" />
+      }
+    </div>
+  }
+  @case ('error') {
+    <div class="rounded-3xl border-2 border-line bg-surface"><app-error-state [message]="error()" (retry)="reload()" /></div>
+  }
+  @default {
+    @if (items().length === 0) {
+      <div class="rounded-3xl border-2 border-line bg-surface">
+        @if (hasFilters()) {
+          <app-empty-state icon="search" title="Hech narsa topilmadi" text="Boshqa so'z yoki filtrlar bilan qidirib ko'ring.">
+            <button appButton type="button" variant="secondary" size="s" (click)="clearFilters()">Filtrlarni tozalash</button>
+          </app-empty-state>
+        } @else {
+          <app-empty-state icon="book" title="Lug'at hozircha bo'sh" text="So'zlar qo'shilgach shu yerda ko'rinadi." />
+        }
+      </div>
+    } @else if (view() === 'grid') {
+      <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        @for (word of items(); track word.id) {
+          <article class="flex flex-col gap-3.5 rounded-2xl border-2 border-line bg-surface px-6 py-5.5">
+            <div class="flex min-h-9 items-center gap-1.5">
+              @if (word.cefrLevel) {
+                <app-tag>{{ word.cefrLevel.toUpperCase() }}</app-tag>
+              }
+              @if (word.partOfSpeech) {
+                <app-tag [color]="posColor(word.partOfSpeech)">{{ word.partOfSpeech }}</app-tag>
+              }
+              @if (word.isCustom) {
+                <app-tag color="yellow">Mening</app-tag>
+              }
+              <app-audio-button class="ml-auto" [src]="word.audioUrl" [text]="word.text" [label]="word.text + ' talaffuzi'" />
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <h2 class="font-display text-h2 break-words text-fg">{{ word.text }}</h2>
+              @if (word.transcription) {
+                <p class="text-body font-semibold text-fg-muted">{{ word.transcription }}</p>
+              }
+            </div>
+            <p class="text-body-strong text-violet-text">{{ word.primaryTranslation || '—' }}</p>
+            @if (word.exampleSentence) {
+              <p class="rounded-input bg-page px-3.5 py-2.5 text-body text-fg-secondary">“{{ word.exampleSentence }}”</p>
+            }
+            <div class="mt-auto flex items-center justify-between">
+              <a [routerLink]="['/words', word.id]" class="inline-flex items-center gap-1.5 text-body-strong text-fg-secondary hover:text-violet-text">
+                Batafsil <app-icon name="arrow-right" [size]="16" />
+              </a>
+              <app-add-my-word [wordId]="word.id" [label]="word.text" [added]="word.isInMyWords" />
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="overflow-hidden rounded-3xl border-2 border-line bg-surface">
+        <app-table>
+          <table>
+            <thead>
+              <tr>
+                <th>So'z</th>
+                <th>Tarjima</th>
+                <th>Daraja</th>
+                <th>Turkum</th>
+                <th><span class="sr-only">Amallar</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (word of items(); track word.id) {
+                <tr>
+                  <td>
+                    <div class="flex items-center gap-3">
+                      <app-audio-button [src]="word.audioUrl" [text]="word.text" [size]="32" [label]="word.text + ' talaffuzi'" />
+                      <a [routerLink]="['/words', word.id]" class="flex flex-col hover:text-violet-text">
+                        <span class="text-body-strong">{{ word.text }}</span>
+                        @if (word.transcription) {
+                          <span class="text-caption text-fg-muted">{{ word.transcription }}</span>
+                        }
+                      </a>
+                    </div>
+                  </td>
+                  <td>{{ word.primaryTranslation || '—' }}</td>
+                  <td>
+                    @if (word.cefrLevel) {
+                      <app-tag>{{ word.cefrLevel.toUpperCase() }}</app-tag>
+                    }
+                  </td>
+                  <td>
+                    @if (word.partOfSpeech) {
+                      <app-tag [color]="posColor(word.partOfSpeech)">{{ word.partOfSpeech }}</app-tag>
+                    }
+                  </td>
+                  <td class="text-right"><app-add-my-word [wordId]="word.id" [label]="word.text" [added]="word.isInMyWords" /></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </app-table>
+      </div>
+    }
+
+    @if (hasNext()) {
+      <div class="flex justify-center">
+        <button appButton type="button" variant="secondary" icon="refresh" [loading]="loadingMore()" (click)="loadMore()">
+          Ko'proq yuklash
+        </button>
+      </div>
+    }
+  }
+}

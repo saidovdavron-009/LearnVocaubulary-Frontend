@@ -1,0 +1,122 @@
+<!-- Profil -->
+<section id="profile" class="scroll-mt-6 rounded-3xl border-2 border-line bg-surface p-6 md:p-7" aria-label="Profil">
+  @if (profile(); as p) {
+    <div class="flex flex-col gap-5 border-b border-line pb-6 sm:flex-row sm:items-center">
+      <div class="relative shrink-0 self-start">
+        <app-avatar [name]="p.displayName || p.username" [src]="p.avatarUrl" color="violet" [size]="96" />
+        <button
+          type="button"
+          class="absolute right-0 bottom-0 flex size-8 items-center justify-center rounded-full border-2 border-surface bg-yellow text-fg"
+          aria-label="Rasmni almashtirish"
+          (click)="openAvatar()"
+        >
+          <app-icon name="edit" [size]="14" />
+        </button>
+      </div>
+      <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <h2 class="truncate font-display text-h2 text-fg">{{ p.displayName || p.username }}</h2>
+          @if (level() !== null) {
+            <app-tag color="violet">Daraja {{ level() }}</app-tag>
+          }
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-body text-fg-secondary">
+          <span class="break-all">&#64;{{ p.username }} · {{ p.email }}</span>
+          @if (p.isEmailVerified) {
+            <span class="inline-flex items-center gap-1 rounded-full bg-mint-soft px-2 py-0.5 text-caption text-mint-text">
+              <app-icon name="check" [size]="12" /> Tasdiqlangan
+            </span>
+          } @else {
+            <a
+              routerLink="/verify-email"
+              class="inline-flex items-center gap-1 rounded-full bg-coral-soft px-2 py-0.5 text-caption text-coral-text hover:underline"
+            >
+              <app-icon name="alert" [size]="12" /> Tasdiqlanmagan — tasdiqlash
+            </a>
+          }
+        </div>
+        <p class="text-caption text-fg-muted">{{ memberSince() }}</p>
+      </div>
+      <button appButton type="button" variant="secondary" size="s" class="self-start" (click)="openAvatar()">
+        Rasmni almashtirish
+      </button>
+    </div>
+
+    <form [formGroup]="form" class="mt-6 flex flex-col gap-5" novalidate (ngSubmit)="submit()">
+      @if (error()) {
+        <app-alert>{{ error() }}</app-alert>
+      }
+      <div class="grid gap-5 md:grid-cols-2">
+        <app-input label="Ko'rinadigan ism" placeholder="Ismingiz" autocomplete="name" formControlName="displayName" />
+        <app-input
+          label="Username"
+          autocomplete="username"
+          formControlName="username"
+          [errorMessages]="{ pattern: 'Username 3–50 belgi: lotin harflari, raqamlar, “_” va “.”' }"
+        />
+        <app-input label="Email" icon="mail" type="email" helper="Emailni o'zgartirib bo'lmaydi" formControlName="email" />
+        <app-select
+          label="Ona tili"
+          icon="globe"
+          placeholder="Tanlang"
+          [options]="languageOptions()"
+          formControlName="nativeLanguageId"
+        />
+      </div>
+      <div class="flex flex-wrap justify-end gap-3">
+        <button appButton type="button" variant="secondary" [disabled]="form.pristine" (click)="reset()">Bekor qilish</button>
+        <button appButton type="submit" icon="check" [loading]="saving()" [disabled]="form.pristine">Saqlash</button>
+      </div>
+    </form>
+  } @else {
+    <div class="flex items-center gap-5">
+      <app-skeleton class="size-24 rounded-full" />
+      <div class="flex flex-1 flex-col gap-3">
+        <app-skeleton class="h-8 w-60" />
+        <app-skeleton class="h-4 w-80 max-w-full" />
+      </div>
+    </div>
+    <div class="mt-8 grid gap-5 md:grid-cols-2">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <app-skeleton class="h-20 rounded-input" />
+      }
+    </div>
+  }
+</section>
+
+<!-- Til va mintaqa -->
+<section id="region" class="scroll-mt-6 rounded-3xl border-2 border-line bg-surface p-6 md:p-7" aria-labelledby="region-title">
+  <h2 id="region-title" class="font-display text-h3 text-fg">Til va mintaqa</h2>
+  <p class="mt-1 text-body text-fg-secondary">Eslatmalar va kunlik statistika shu vaqt zonasi bo'yicha hisoblanadi.</p>
+  <form [formGroup]="form" class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end" novalidate (ngSubmit)="submit()">
+    <app-select label="Vaqt zonasi" icon="clock" class="flex-1" [options]="timezones" formControlName="timezone" />
+    <button appButton type="submit" icon="check" [loading]="saving()" [disabled]="form.pristine">Saqlash</button>
+  </form>
+</section>
+
+<!-- Avatar -->
+<app-modal
+  [(open)]="avatarOpen"
+  title="Profil rasmi"
+  description="Rasmning https bilan boshlanadigan to'liq manzilini kiriting."
+>
+  <form [formGroup]="avatarForm" class="flex flex-col gap-4" novalidate (ngSubmit)="saveAvatar()">
+    @if (avatarError()) {
+      <app-alert>{{ avatarError() }}</app-alert>
+    }
+    <app-input
+      label="Rasm manzili (URL)"
+      icon="link"
+      type="url"
+      placeholder="https://..."
+      formControlName="avatarUrl"
+      [errorMessages]="{ pattern: 'Manzil https:// bilan boshlanishi kerak' }"
+    />
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      @if (profile()?.avatarUrl) {
+        <button appButton type="button" variant="secondary" (click)="saveAvatar(true)">Rasmni olib tashlash</button>
+      }
+      <button appButton type="submit" icon="check" [loading]="saving()">Saqlash</button>
+    </div>
+  </form>
+</app-modal>

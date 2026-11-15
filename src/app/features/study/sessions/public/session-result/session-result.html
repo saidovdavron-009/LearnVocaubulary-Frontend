@@ -1,0 +1,108 @@
+<!-- Bezak: doiralar va konfetti (Figma 12) -->
+<div class="pointer-events-none absolute inset-0" aria-hidden="true">
+  <span class="absolute -top-30 -left-30 size-90 rounded-full bg-yellow"></span>
+  <span class="absolute -right-15 -bottom-14 size-80 rounded-full bg-coral"></span>
+  <span class="absolute top-22.5 right-[11.8%] hidden size-22.5 rounded-full bg-mint md:block"></span>
+  <span class="absolute bottom-[12%] left-[10.4%] hidden size-17.5 rounded-full bg-blue md:block"></span>
+  @for (c of confetti; track $index) {
+    <span
+      class="absolute hidden h-7.5 w-4.5 rounded-xs md:block"
+      [class]="c.c"
+      [style.left.%]="c.x"
+      [style.top.px]="c.y"
+      [style.transform]="'rotate(' + c.r + 'deg)'"
+    ></span>
+  }
+</div>
+
+@if (data.isLoading()) {
+  <div class="relative flex flex-col items-center gap-4 text-violet-soft" role="status">
+    <span class="size-10 animate-spin rounded-full border-4 border-fg-inverse border-r-transparent" aria-hidden="true"></span>
+    Natijalar yuklanmoqda...
+  </div>
+} @else if (data.error()) {
+  <div class="relative w-full max-w-130 rounded-2xl bg-surface">
+    <app-error-state title="Natijani yuklab bo'lmadi" (retry)="data.reload()" />
+    <div class="flex justify-center pb-6">
+      <a appButton routerLink="/dashboard" variant="soft" size="s" icon="home">Bosh sahifaga</a>
+    </div>
+  </div>
+} @else if (data.hasValue() ? data.value() : null; as v) {
+  <section class="relative flex w-full max-w-202 flex-col items-center gap-7 text-center" aria-labelledby="result-title">
+    <span
+      class="flex size-30 rotate-6 items-center justify-center rounded-[44px] bg-yellow text-fg shadow-[0_8px_0_0_var(--color-yellow-deep)] md:size-35"
+      aria-hidden="true"
+    >
+      <app-icon name="trophy" [size]="64" />
+    </span>
+    <div class="flex flex-col gap-3">
+      <h1 id="result-title" class="font-display text-h1 text-fg-inverse md:text-[64px] md:leading-[67px] md:tracking-[-2px]">
+        Zo'r ish{{ name() ? ', ' + name() : '' }}!
+      </h1>
+      <p class="text-body-lg text-violet-soft">{{ subtitle() }}</p>
+    </div>
+
+    <dl class="grid w-full grid-cols-2 gap-4 md:grid-cols-4">
+      <div class="flex flex-col items-center gap-1.5 rounded-2xl bg-yellow px-6 py-5 text-fg shadow-[0_6px_0_0_var(--color-violet-deep)]">
+        <app-icon name="bolt" [size]="24" />
+        <dd class="font-display text-number">+{{ formatNumber(v.session.xpEarned) }}</dd>
+        <dt class="text-label">XP to'plandi</dt>
+      </div>
+      <div class="flex flex-col items-center gap-1.5 rounded-2xl bg-mint px-6 py-5 text-fg shadow-[0_6px_0_0_var(--color-violet-deep)]">
+        <app-icon name="target" [size]="24" />
+        <dd class="font-display text-number">{{ v.session.accuracyPercent }}%</dd>
+        <dt class="text-label">Aniqlik</dt>
+      </div>
+      <div class="flex flex-col items-center gap-1.5 rounded-2xl bg-surface px-6 py-5 text-fg shadow-[0_6px_0_0_var(--color-violet-deep)]">
+        <app-icon name="refresh" [size]="24" />
+        <dd class="font-display text-number">{{ v.session.wordsStudied }}</dd>
+        <dt class="text-label">So'z takrorlandi</dt>
+      </div>
+      <div class="flex flex-col items-center gap-1.5 rounded-2xl bg-coral px-6 py-5 text-fg shadow-[0_6px_0_0_var(--color-violet-deep)]">
+        <app-icon name="flame" [size]="24" />
+        <dd class="font-display text-number">{{ v.stats.currentStreak }}</dd>
+        <dt class="text-label">Kunlik seriya</dt>
+      </div>
+    </dl>
+
+    <div class="flex w-full flex-col gap-2.5 rounded-2xl bg-fg-inverse/12 px-6 py-4.5 text-left">
+      <div class="flex flex-wrap items-center justify-between gap-2 text-body-strong">
+        <span class="text-fg-inverse">Daraja {{ v.stats.level }} → {{ v.stats.level + 1 }}</span>
+        <span class="text-yellow">
+          {{ formatNumber(v.stats.xp) }} / {{ formatNumber(v.stats.nextLevelXp) }} XP
+          @if (levelUp()) {
+            · Yangi daraja!
+          }
+        </span>
+      </div>
+      <div
+        class="h-3.5 overflow-hidden rounded-full bg-fg-inverse/20"
+        role="progressbar"
+        aria-label="Keyingi darajagacha"
+        [attr.aria-valuenow]="levelPercent()"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <div class="h-full rounded-full bg-yellow" [style.width.%]="levelPercent()"></div>
+      </div>
+    </div>
+
+    @for (a of achievements; track a.id) {
+      <div class="flex w-full items-center gap-3.5 rounded-card bg-surface py-3.5 pr-5 pl-4 text-left">
+        <span class="flex size-13 shrink-0 items-center justify-center rounded-xl bg-mint text-fg" aria-hidden="true">
+          <app-icon name="trophy" [size]="24" />
+        </span>
+        <div class="flex min-w-0 flex-1 flex-col">
+          <p class="text-body-strong text-fg">Yangi yutuq: “{{ a.title }}”</p>
+          <p class="text-caption text-fg-muted">+{{ a.xpReward }} XP bonus qo'shildi</p>
+        </div>
+        <span class="rounded-sm bg-yellow-soft px-2.5 py-1.25 text-label text-yellow-text">Yangi!</span>
+      </div>
+    }
+
+    <div class="flex flex-wrap justify-center gap-3">
+      <button appButton type="button" variant="secondary" size="l" icon="send" (click)="share()">Do'stlarga ulashish</button>
+      <a appButton routerLink="/dashboard" variant="yellow" size="l" icon="home">Bosh sahifaga</a>
+    </div>
+  </section>
+}

@@ -1,0 +1,542 @@
+<!-- ============ HERO ============ -->
+<section class="mx-auto grid max-w-360 items-center gap-12 px-4 pt-14 pb-16 md:px-10 lg:grid-cols-[1fr_416px] xl:px-25 xl:pt-18">
+  <div class="flex flex-col items-start">
+    <span class="inline-flex items-center gap-2 rounded-full bg-yellow-soft px-3.5 py-1.5 text-label text-yellow-text">
+      <app-icon name="bolt" [size]="16" /> Aqlli takrorlash (SRS) bilan
+    </span>
+    <h1 class="mt-6 font-display text-h1 text-fg md:text-display">
+      So'zlarni o'rganing.<br />
+      <span class="text-violet">Hech qachon</span>
+      <span class="ml-1 inline-block -rotate-2 rounded-xl bg-yellow px-3.5 pb-1 text-fg shadow-hard shadow-yellow-deep">unutmang.</span>
+    </h1>
+    <p class="mt-6 max-w-136 text-body-lg text-fg-secondary">
+      Har kuni 10 daqiqa. So'zchi har bir so'zni aynan unutishingizdan oldin qayta ko'rsatadi — kartochkalar, tinglash,
+      yozish va o'yinlar orqali.
+    </p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      @if (isAuthenticated()) {
+        <a appButton routerLink="/study" size="l" icon="arrow-right">O'rganishni boshlash</a>
+      } @else {
+        <a appButton routerLink="/register" size="l" icon="arrow-right">O'rganishni boshlash</a>
+      }
+      <a appButton routerLink="/decks" variant="secondary" size="l">To'plamlarni ko'rish</a>
+    </div>
+    <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-body text-fg-secondary">
+      @for (item of ['Email bilan tezkor kirish', 'A1 dan C2 gacha', 'Kunlik eslatmalar']; track item) {
+        <li class="flex items-center gap-2">
+          <span class="flex size-5 items-center justify-center rounded-full bg-mint-soft text-mint-text">
+            <app-icon name="check" [size]="12" />
+          </span>
+          {{ item }}
+        </li>
+      }
+    </ul>
+  </div>
+
+  <!-- Jonli kartochka: kunning so'zi (bosilsa ag'dariladi) -->
+  @if (word.isLoading()) {
+    <app-skeleton class="mx-auto h-110 w-full max-w-104 rounded-3xl" />
+  } @else if (word.hasValue() ? word.value() : null; as w) {
+    <div class="relative mx-auto w-full max-w-104 [perspective:1200px]">
+      <div class="absolute inset-0 translate-x-4 -translate-y-3 rotate-[5deg] rounded-3xl bg-yellow" aria-hidden="true"></div>
+      <div class="absolute inset-0 translate-x-2 rotate-[2deg] rounded-3xl bg-coral" aria-hidden="true"></div>
+      <span
+        class="absolute -top-6 -right-4 z-20 flex items-center gap-1.5 rounded-xl bg-ink px-3 py-2 text-body-strong text-fg-inverse"
+        aria-hidden="true"
+      >
+        <app-icon name="bolt" [size]="16" class="text-yellow" /> Kunning so'zi
+      </span>
+
+      <button
+        type="button"
+        class="relative z-10 block h-110 w-full text-left transition-transform duration-300 [transform-style:preserve-3d]"
+        [class]="flipped() ? '[transform:rotateY(180deg)]' : ''"
+        [attr.aria-label]="flipped() ? 'Kartochkani qaytarish' : 'Tarjimani ko‘rish'"
+        [attr.aria-pressed]="flipped()"
+        (click)="flipped.set(!flipped())"
+      >
+        <!-- Old tomoni -->
+        <div class="absolute inset-0 flex flex-col rounded-3xl border-2 border-line bg-surface p-7 shadow-card [backface-visibility:hidden]">
+          <div class="flex items-center gap-2">
+            @if (w.cefrLevel) {
+              <app-tag color="violet">{{ w.cefrLevel.toUpperCase() }}</app-tag>
+            }
+            @if (w.partOfSpeech) {
+              <app-tag [color]="posColor(w.partOfSpeech)">{{ w.partOfSpeech }}</app-tag>
+            }
+            <span class="ml-auto text-caption text-fg-muted">Bosing — tarjima</span>
+          </div>
+          <div class="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+            <p class="font-display text-h1 break-words text-fg md:text-[56px] md:leading-[1.05] md:tracking-[-2px]">{{ w.text }}</p>
+            @if (w.transcription) {
+              <p class="text-body-lg text-fg-secondary">{{ w.transcription }}</p>
+            }
+            @if (w.audioUrl || canSpeak) {
+              <span
+                role="button"
+                tabindex="0"
+                class="mt-2 flex size-13 items-center justify-center rounded-full bg-violet text-fg-inverse shadow-hard shadow-violet-deep"
+                aria-label="Tinglash"
+                (click)="playAudio(w.audioUrl, $event, w.text)"
+                (keydown.enter)="playAudio(w.audioUrl, $event, w.text)"
+              >
+                <app-icon name="speaker" [size]="22" />
+              </span>
+            }
+          </div>
+          @if (w.exampleSentence) {
+            <p class="rounded-input bg-yellow-soft px-4 py-3 text-body-strong text-fg">{{ w.exampleSentence }}</p>
+          }
+        </div>
+        <!-- Orqa tomoni -->
+        <div
+          class="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-line bg-surface p-7 text-center shadow-card [backface-visibility:hidden] [transform:rotateY(180deg)]"
+        >
+          <p class="text-label-caps text-fg-muted uppercase">Tarjima</p>
+          <p class="font-display text-h1 text-violet-text">{{ w.primaryTranslation || '—' }}</p>
+          <p class="text-body-lg text-fg-secondary">{{ w.text }}</p>
+          <div class="mt-4 grid w-full grid-cols-4 gap-2" aria-hidden="true">
+            @for (r of [
+              { label: 'Yana', time: '<1 daq', cls: 'bg-coral-soft text-coral-text' },
+              { label: 'Qiyin', time: '1 kun', cls: 'bg-yellow-soft text-yellow-text' },
+              { label: 'Yaxshi', time: '3 kun', cls: 'bg-mint-soft text-mint-text' },
+              { label: 'Oson', time: '7 kun', cls: 'bg-blue-soft text-blue-text' },
+            ]; track r.label) {
+              <span class="flex flex-col items-center rounded-input py-3" [class]="r.cls">
+                <span class="text-body-strong">{{ r.label }}</span>
+                <span class="text-caption">{{ r.time }}</span>
+              </span>
+            }
+          </div>
+        </div>
+      </button>
+    </div>
+  }
+</section>
+
+<!-- ============ BUGUNGI STATISTIKA (faqat kirgan user) ============ -->
+@if (isAuthenticated()) {
+  <section class="mx-auto max-w-360 px-4 pb-14 md:px-10 xl:px-25" aria-label="Bugungi statistika">
+    @if (stats.isLoading()) {
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <app-skeleton class="h-36 rounded-3xl" />
+        }
+      </div>
+    } @else if (stats.error()) {
+      <div class="rounded-3xl border-2 border-line bg-surface"><app-error-state (retry)="stats.reload()" /></div>
+    } @else if (stats.hasValue() ? stats.value() : null; as s) {
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="flex items-center gap-5 rounded-3xl border-2 border-line bg-surface p-5">
+          <app-progress-ring [value]="s.today.newWords" [max]="s.today.dailyGoal" [size]="96" [stroke]="12" color="violet" label="Kunlik maqsad">
+            <span class="font-display text-h3 text-fg">{{ s.today.newWords }}/{{ s.today.dailyGoal }}</span>
+          </app-progress-ring>
+          <div class="flex flex-col gap-1">
+            <p class="text-label-caps text-fg-muted uppercase">Kunlik maqsad</p>
+            <p class="font-display text-h3 text-fg">
+              {{ s.today.goalReached ? 'Maqsadga erishildi!' : 'Yana ' + goalLeft() + " ta so'z!" }}
+            </p>
+            <p class="text-body text-fg-secondary">Bugun {{ s.today.newWords }} ta yangi so'z o'rgandingiz</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 rounded-3xl border-2 border-line bg-surface p-5">
+          <div class="flex items-center justify-between">
+            <p class="text-label-caps text-fg-muted uppercase">Seriya</p>
+            <p class="text-label text-fg-secondary">Rekord: {{ s.longestStreak }}</p>
+          </div>
+          <p class="flex items-center gap-2 font-display text-h3 text-fg">
+            <app-icon name="flame" [size]="22" class="text-coral-strong" /> {{ s.currentStreak }} kunlik seriya
+          </p>
+          <div class="flex justify-between">
+            @for (day of week(); track day.label) {
+              <div class="flex flex-col items-center gap-1.5">
+                <span
+                  class="flex size-8 items-center justify-center rounded-full"
+                  [class]="
+                    day.done
+                      ? 'bg-coral-strong text-fg-inverse'
+                      : day.today
+                        ? 'border-2 border-dashed border-coral-strong'
+                        : 'bg-muted'
+                  "
+                >
+                  @if (day.done) {
+                    <app-icon name="check" [size]="14" />
+                  }
+                </span>
+                <span class="text-caption text-fg-secondary">{{ day.label }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 rounded-3xl bg-violet p-5 text-fg-inverse shadow-hard shadow-violet-deep">
+          <p class="text-label-caps text-fg-inverse/80 uppercase">Daraja {{ s.level }}</p>
+          <p class="font-display text-number">{{ formatNumber(s.xp) }} XP</p>
+          <div class="h-2.5 overflow-hidden rounded-full bg-fg-inverse/25" aria-hidden="true">
+            <div class="h-full rounded-full bg-yellow transition-[width] duration-300" [style.width.%]="(levelProgress().value / levelProgress().max) * 100"></div>
+          </div>
+          <p class="text-body text-fg-inverse/85">{{ s.level + 1 }}-darajagacha {{ formatNumber(levelProgress().left) }} XP qoldi</p>
+        </div>
+
+        <div class="flex flex-col items-start gap-3 rounded-3xl bg-yellow p-5 shadow-hard shadow-yellow-deep">
+          <p class="text-label-caps text-yellow-text uppercase">Takrorlash vaqti</p>
+          <p class="flex items-baseline gap-2 text-fg">
+            <span class="font-display text-number">{{ s.words.due }}</span>
+            <span class="font-display text-h3">so'z</span>
+          </p>
+          <a appButton routerLink="/study" variant="dark" size="s">Hozir takrorlash</a>
+        </div>
+      </div>
+    }
+  </section>
+}
+
+<!-- ============ MAVZULAR ============ -->
+<section class="mx-auto max-w-360 px-4 pb-16 md:px-10 xl:px-25" aria-labelledby="topics-title">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-label text-violet">Mavzular</p>
+      <h2 id="topics-title" class="mt-2 font-display text-h1 text-fg">Qiziqqan mavzuingizdan boshlang</h2>
+    </div>
+    <a routerLink="/vocabulary" class="inline-flex items-center gap-2 text-body-strong text-violet-text hover:underline">
+      Barcha mavzular <app-icon name="arrow-right" [size]="18" />
+    </a>
+  </div>
+
+  <div class="mt-7 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+    @if (categories.isLoading()) {
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <app-skeleton class="h-48 rounded-3xl" />
+      }
+    } @else if (categories.error()) {
+      <div class="col-span-full rounded-3xl border-2 border-line bg-surface"><app-error-state (retry)="categories.reload()" /></div>
+    } @else {
+      @for (cat of categories.value() ?? []; track cat.id; let i = $index) {
+        <a
+          [routerLink]="['/vocabulary']"
+          [queryParams]="{ categoryId: cat.id }"
+          class="flex min-h-48 flex-col rounded-3xl p-5 transition-transform duration-150 hover:-translate-y-0.5"
+          [class]="categoryColors[i % categoryColors.length].box"
+        >
+          <span
+            class="flex size-13 items-center justify-center rounded-input bg-surface shadow-hard shadow-violet-soft-deep"
+            [class]="categoryColors[i % categoryColors.length].icon"
+          >
+            <app-icon [name]="categoryIcon(cat.icon)" [size]="22" />
+          </span>
+          <span class="mt-auto pt-6 font-display text-h3 text-fg">{{ cat.name }}</span>
+          <span class="mt-1 text-caption text-fg-secondary">{{ cat.wordsCount }} so'z</span>
+        </a>
+      } @empty {
+        <div class="col-span-full rounded-3xl border-2 border-line bg-surface">
+          <app-empty-state icon="grid" title="Mavzular hali qo'shilmagan" />
+        </div>
+      }
+    }
+  </div>
+</section>
+
+<!-- ============ TO'PLAMLAR ============ -->
+<section class="mx-auto max-w-360 px-4 pb-16 md:px-10 xl:px-25" aria-labelledby="decks-title">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-label text-coral-text">To'plamlar</p>
+      <h2 id="decks-title" class="mt-2 font-display text-h1 text-fg">Darajangizga mos to'plam tanlang</h2>
+    </div>
+    <div role="tablist" aria-label="Daraja" class="flex gap-1 overflow-x-auto rounded-xl border-2 border-line bg-surface p-1">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="deckLevel() === null"
+        class="h-9 shrink-0 rounded-lg px-3.5 text-label transition-colors"
+        [class]="deckLevel() === null ? 'bg-ink text-fg-inverse' : 'text-fg-secondary hover:text-fg'"
+        (click)="deckLevel.set(null)"
+      >
+        Hammasi
+      </button>
+      @for (level of cefrLevels; track level) {
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="deckLevel() === level"
+          class="h-9 shrink-0 rounded-lg px-3.5 text-label transition-colors"
+          [class]="deckLevel() === level ? 'bg-ink text-fg-inverse' : 'text-fg-secondary hover:text-fg'"
+          (click)="deckLevel.set(level)"
+        >
+          {{ level.toUpperCase() }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    @if (decks.isLoading()) {
+      @for (i of [1, 2, 3, 4]; track i) {
+        <app-skeleton class="h-82 rounded-3xl" />
+      }
+    } @else if (decks.error()) {
+      <div class="col-span-full rounded-3xl border-2 border-line bg-surface"><app-error-state (retry)="decks.reload()" /></div>
+    } @else {
+      @for (deck of decks.value() ?? []; track deck.id; let i = $index) {
+        @let cover = deckCovers[i % deckCovers.length];
+        <article class="flex flex-col overflow-hidden rounded-3xl border-2 border-line bg-surface">
+          <div class="relative h-32 overflow-hidden" [class]="cover.bg">
+            @if (deck.coverUrl) {
+              <img [src]="deck.coverUrl" alt="" class="size-full object-cover" />
+            } @else {
+              <span class="absolute -bottom-4 right-5 font-display text-[150px] leading-none" [class]="cover.letter" aria-hidden="true">
+                {{ deck.title.charAt(0).toUpperCase() }}
+              </span>
+            }
+            @if (deck.cefrLevel) {
+              <app-tag color="gray" class="absolute top-4 left-4 !bg-surface/90">{{ deck.cefrLevel.toUpperCase() }}</app-tag>
+            }
+          </div>
+          <div class="flex flex-1 flex-col gap-3 p-5">
+            <h3 class="font-display text-h3 text-fg">{{ deck.title }}</h3>
+            @if (deck.description) {
+              <p class="line-clamp-2 text-body text-fg-secondary">{{ deck.description }}</p>
+            }
+            @if (deck.isStarted) {
+              <div class="flex items-center gap-3">
+                <app-progress-bar class="flex-1" [value]="deck.progress" color="mint" [label]="deck.title + ' progressi'" />
+                <span class="text-label text-fg-secondary">{{ deck.progress }}%</span>
+              </div>
+            }
+            <div class="mt-auto flex items-center justify-between pt-2">
+              <span class="text-body-strong text-fg-secondary">{{ deck.wordsCount }} so'z</span>
+              @if (deck.isStarted) {
+                <a appButton [routerLink]="['/decks', deck.id]" size="s">Davom etish</a>
+              } @else {
+                <a appButton [routerLink]="['/decks', deck.id]" variant="soft" size="s">Boshlash</a>
+              }
+            </div>
+          </div>
+        </article>
+      } @empty {
+        <div class="col-span-full rounded-3xl border-2 border-line bg-surface">
+          <app-empty-state icon="layers" title="Bu darajada to'plam yo'q" text="Boshqa darajani tanlab ko'ring." />
+        </div>
+      }
+    }
+  </div>
+</section>
+
+<!-- ============ MENING SO'ZLARIM (faqat kirgan user) ============ -->
+@if (isAuthenticated()) {
+  <section class="mx-auto max-w-360 px-4 pb-16 md:px-10 xl:px-25" aria-labelledby="my-words-title">
+    <div class="overflow-hidden rounded-4xl border-2 border-line bg-surface">
+      <div class="flex flex-col gap-5 p-6 md:p-7">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 id="my-words-title" class="font-display text-h2 text-fg">Mening so'zlarim</h2>
+            <p class="mt-1 text-body text-fg-secondary">Har bir so'zning holati va keyingi takrorlash vaqti</p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <form role="search" (submit)="searchMyWords($event)">
+              <label class="flex h-11 w-56 items-center gap-2.5 rounded-input border-2 border-line bg-page px-3.5 focus-within:border-violet focus-within:shadow-focus">
+                <app-icon name="search" [size]="18" class="text-fg-muted" />
+                <span class="sr-only">So'z qidirish</span>
+                <input name="q" type="search" placeholder="So'z qidirish..." class="min-w-0 flex-1 bg-transparent text-body font-semibold text-fg outline-none placeholder:text-fg-muted" />
+              </label>
+            </form>
+            <a appButton routerLink="/vocabulary" icon="plus">So'z qo'shish</a>
+          </div>
+        </div>
+        <div role="tablist" aria-label="So'z holati" class="flex gap-2 overflow-x-auto pb-1">
+          @for (tab of myWordTabs; track tab.label) {
+            <button appTab [active]="myWordsStatus() === tab.status" [count]="countFor(tab.status)" (click)="myWordsStatus.set(tab.status)">
+              {{ tab.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (myWords.isLoading()) {
+        <div class="flex flex-col gap-3 px-7 pb-7">
+          @for (i of [1, 2, 3, 4]; track i) {
+            <app-skeleton class="h-12" />
+          }
+        </div>
+      } @else if (myWords.error()) {
+        <app-error-state (retry)="myWords.reload()" />
+      } @else if (myWords.hasValue() ? myWords.value() : null; as page) {
+        @if (page.data.length) {
+          <app-table>
+            <table>
+              <thead>
+                <tr>
+                  <th>So'z</th>
+                  <th>Tarjima</th>
+                  <th>Daraja</th>
+                  <th>Holat</th>
+                  <th>Keyingi takror</th>
+                  <th class="text-right">Sevimli</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (w of page.data; track w.wordId) {
+                  <tr>
+                    <td>
+                      <a [routerLink]="['/words', w.wordId]" class="flex items-center gap-3">
+                        <app-avatar [name]="w.text" [size]="40" />
+                        <span class="flex flex-col">
+                          <span class="text-body-strong">{{ w.text }}</span>
+                          @if (w.transcription) {
+                            <span class="text-caption text-fg-muted">{{ w.transcription }}</span>
+                          }
+                        </span>
+                      </a>
+                    </td>
+                    <td>{{ w.primaryTranslation || '—' }}</td>
+                    <td>
+                      @if (w.cefrLevel) {
+                        <app-tag>{{ w.cefrLevel.toUpperCase() }}</app-tag>
+                      }
+                    </td>
+                    <td><app-badge [status]="w.status" /></td>
+                    <td>{{ formatNextReview(w.nextReviewAt) }}</td>
+                    <td class="text-right">
+                      <app-icon
+                        name="star"
+                        [size]="20"
+                        [class]="w.isFavorite ? 'text-yellow-text [&_path]:fill-yellow' : 'text-line-strong'"
+                        [attr.aria-label]="w.isFavorite ? 'Sevimli' : null"
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </app-table>
+          <div class="flex items-center justify-between border-t border-line px-7 py-4">
+            <p class="text-body text-fg-secondary">{{ page.data.length }} / {{ page.totalCount }} ta so'z ko'rsatilmoqda</p>
+            <a routerLink="/my-words" class="inline-flex items-center gap-2 text-body-strong text-violet-text hover:underline">
+              Barchasi <app-icon name="arrow-right" [size]="18" />
+            </a>
+          </div>
+        } @else {
+          <app-empty-state icon="star" title="Bu yerda hali so'z yo'q" text="Lug'atdan so'z qo'shing yoki to'plamni boshlang.">
+            <a appButton routerLink="/vocabulary" size="s" icon="plus">So'z qo'shish</a>
+          </app-empty-state>
+        }
+      }
+    </div>
+  </section>
+}
+
+<!-- ============ MASHQ TURLARI ============ -->
+<section class="mx-auto max-w-360 px-4 pb-16 md:px-10 xl:px-25" aria-labelledby="exercises-title">
+  <p class="text-center text-label text-mint-text">6 xil mashq</p>
+  <h2 id="exercises-title" class="mt-3 text-center font-display text-h1 text-fg">Zerikarli yodlash yo'q — har safar yangi o'yin</h2>
+  <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+    @for (ex of exercises; track ex.type) {
+      <div class="flex flex-col gap-3 rounded-3xl p-6" [class]="ex.box">
+        <span class="flex size-12 items-center justify-center rounded-input bg-surface" [class]="ex.iconColor">
+          <app-icon [name]="ex.icon" [size]="22" />
+        </span>
+        <h3 class="mt-2 font-display text-h3 text-fg">{{ ex.title }}</h3>
+        <p class="text-body text-fg-secondary">{{ ex.text }}</p>
+      </div>
+    }
+  </div>
+</section>
+
+<!-- ============ REYTING VA YUTUQLAR (faqat kirgan user) ============ -->
+@if (isAuthenticated()) {
+  <section class="mx-auto grid max-w-360 gap-5 px-4 pb-16 md:px-10 lg:grid-cols-[1.8fr_1fr] xl:px-25" aria-label="Reyting va yutuqlar">
+    <div class="rounded-4xl bg-ink p-6 text-fg-inverse md:p-7">
+      <div class="flex items-center justify-between">
+        <h2 class="font-display text-h2">Do'stlar reytingi</h2>
+        <span class="rounded-full bg-fg-inverse/12 px-3 py-1.5 text-label">Shu hafta</span>
+      </div>
+      <div class="mt-5 flex flex-col gap-2">
+        @if (leaderboard.isLoading()) {
+          @for (i of [1, 2, 3]; track i) {
+            <app-skeleton class="h-16 rounded-card !bg-fg-inverse/10" />
+          }
+        } @else if (leaderboard.error()) {
+          <p class="py-8 text-center text-body text-line-strong">Reytingni yuklab bo'lmadi.</p>
+        } @else {
+          @for (entry of leaderboard.value() ?? []; track entry.userId) {
+            <a
+              [routerLink]="entry.isMe ? '/stats' : ['/u', entry.username]"
+              class="flex items-center gap-4 rounded-card px-3 py-3 transition-colors"
+              [class]="entry.isMe ? 'border-2 border-violet bg-fg-inverse/10' : 'hover:bg-fg-inverse/5'"
+            >
+              <span
+                class="flex size-7 items-center justify-center rounded-md text-label"
+                [class]="
+                  entry.rank === 1 ? 'bg-yellow text-fg' : entry.rank === 3 ? 'bg-coral text-fg' : entry.isMe ? 'bg-surface text-fg' : 'bg-fg-inverse/12'
+                "
+                >{{ entry.rank }}</span
+              >
+              <app-avatar [name]="entry.displayName || entry.username" [src]="entry.avatarUrl" [size]="40" />
+              <span class="flex-1 truncate text-body-strong">{{ entry.isMe ? 'Siz' : entry.displayName || entry.username }}</span>
+              <span class="font-display text-h3 text-yellow">{{ formatNumber(entry.xp) }} XP</span>
+            </a>
+          } @empty {
+            <p class="py-8 text-center text-body text-line-strong">Do'stlaringizni qo'shing va birga musobaqalashing.</p>
+          }
+        }
+      </div>
+    </div>
+
+    <div class="flex flex-col rounded-4xl border-2 border-line bg-surface p-6 md:p-7">
+      <h2 class="font-display text-h2 text-fg">Yutuqlar</h2>
+      @if (achievements.isLoading()) {
+        <app-skeleton class="mt-5 h-40 rounded-card" />
+      } @else if (achievements.hasValue() ? achievements.value() : null; as a) {
+        <div class="mt-5 grid grid-cols-3 gap-4">
+          @for (item of a.items.slice(0, 6); track item.id; let i = $index) {
+            <div class="flex flex-col items-center gap-2 text-center" [title]="item.description ?? item.title">
+              <span
+                class="flex size-16 items-center justify-center overflow-hidden rounded-card"
+                [class]="item.isEarned ? ['bg-yellow', 'bg-coral', 'bg-mint', 'bg-blue'][i % 4] + ' text-fg shadow-hard shadow-violet-soft-deep' : 'border-2 border-dashed border-line-strong bg-muted text-fg-muted'"
+              >
+                @if (item.iconUrl) {
+                  <img [src]="item.iconUrl" alt="" class="size-9 object-contain" [class.opacity-50]="!item.isEarned" />
+                } @else {
+                  <app-icon name="trophy" [size]="26" />
+                }
+              </span>
+              <span class="text-label" [class]="item.isEarned ? 'text-fg' : 'text-fg-muted'">{{ item.title }}</span>
+            </div>
+          } @empty {
+            <p class="col-span-full py-6 text-center text-body text-fg-muted">Yutuqlar hali yo'q.</p>
+          }
+        </div>
+        @if (nextAchievement(); as next) {
+          <div class="mt-5 flex flex-col gap-2 rounded-card bg-page p-4">
+            <div class="flex items-center justify-between gap-3">
+              <p class="truncate text-body-strong text-fg">Keyingi: "{{ next.title }}"</p>
+              <p class="text-body-strong text-violet-text">{{ next.progress }}/{{ next.conditionValue }}</p>
+            </div>
+            <app-progress-bar [value]="next.progress" [max]="next.conditionValue" color="mint" [label]="next.title" />
+          </div>
+        }
+      }
+    </div>
+  </section>
+}
+
+<!-- ============ CTA (faqat mehmon) ============ -->
+@if (!isAuthenticated()) {
+  <section class="mx-auto max-w-360 px-4 pb-20 md:px-10 xl:px-25">
+    <div class="relative overflow-hidden rounded-4xl bg-violet px-6 py-16 text-center md:py-20">
+      <div class="absolute -top-28 -left-20 size-62 rounded-full bg-yellow" aria-hidden="true"></div>
+      <div class="absolute top-10 right-12 size-17 rounded-full bg-mint" aria-hidden="true"></div>
+      <div class="absolute -right-6 -bottom-16 size-48 rotate-[18deg] rounded-[40px] bg-coral" aria-hidden="true"></div>
+      <div class="relative">
+        <h2 class="font-display text-h1 text-fg-inverse">Birinchi 10 ta so'zingizni bugun o'rganing</h2>
+        <p class="mt-4 text-body-lg text-fg-inverse/85">Ro'yxatdan o'tish bepul. Kunlik maqsadni o'zingiz belgilaysiz.</p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a appButton routerLink="/register" variant="secondary" size="l" icon="arrow-right">Bepul boshlash</a>
+          <a appButton routerLink="/login" variant="dark" size="l">Kirish</a>
+        </div>
+      </div>
+    </div>
+  </section>
+}

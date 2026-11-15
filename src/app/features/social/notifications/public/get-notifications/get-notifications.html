@@ -1,0 +1,87 @@
+<div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+  <div role="tablist" aria-label="Bildirishnomalar filtri" class="flex gap-2 overflow-x-auto pb-1">
+    @for (f of filters; track f.id) {
+      <button appTab [active]="filter() === f.id" [count]="f.count ? count(f.id) : null" (click)="setFilter(f.id)">{{ f.label }}</button>
+    }
+  </div>
+  <button
+    type="button"
+    class="inline-flex items-center gap-1.5 self-start text-body-strong text-violet-text hover:underline disabled:opacity-50 lg:self-auto"
+    [disabled]="!count('unread')"
+    (click)="markAll()"
+  >
+    <app-icon name="check" [size]="18" /> Barchasini o'qilgan qilish
+  </button>
+</div>
+
+<div class="flex max-w-205 flex-col gap-6">
+  @if (list.isLoading() && !list.hasValue()) {
+    @for (i of [1, 2, 3]; track i) {
+      <app-skeleton class="h-28 rounded-card" />
+    }
+  } @else if (list.error()) {
+    <div class="rounded-card border-2 border-line bg-surface"><app-error-state (retry)="list.reload()" /></div>
+  } @else if (!groups().length) {
+    <div class="rounded-card border-2 border-line bg-surface">
+      <app-empty-state icon="bell" title="Bildirishnoma yo'q" [text]="filter() === 'unread' ? 'Hammasini o‘qib bo‘ldingiz!' : 'Yangi xabarlar shu yerda ko‘rinadi.'" />
+    </div>
+  } @else {
+    @for (g of groups(); track g.label) {
+      <section class="flex flex-col gap-3" [attr.aria-label]="g.label">
+        <h2 class="text-label-caps text-fg-secondary uppercase">{{ g.label }}</h2>
+        @for (n of g.items; track n.id) {
+          @let style = typeStyle[n.type];
+          @let req = requestFor(n);
+          <article
+            class="group relative flex cursor-pointer gap-4 rounded-card border-2 px-4.5 py-4.5 transition-colors"
+            [class]="n.isRead ? 'border-line bg-surface/60' : 'border-line bg-surface hover:border-line-strong'"
+            (click)="open(n)"
+          >
+            <span class="flex size-12 shrink-0 items-center justify-center rounded-input" [class]="style.box" aria-hidden="true">
+              <app-icon [name]="style.icon" [size]="22" />
+            </span>
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+              <h3 class="pr-10 text-body-strong text-fg">{{ n.title }}</h3>
+              @if (n.body) {
+                <p class="text-body text-fg-secondary">{{ n.body }}</p>
+              }
+              <p class="text-caption text-fg-muted">{{ timeAgo(n.createdAt) }}</p>
+              @if (n.type === 'review_due' || n.type === 'streak_reminder') {
+                <div class="pt-2">
+                  <a appButton routerLink="/study" size="s" (click)="$event.stopPropagation(); open(n)">Boshlash</a>
+                </div>
+              } @else if (req) {
+                @if (handled().get(req.id); as h) {
+                  <p class="pt-2 text-label" [class]="h === 'accepted' ? 'text-mint-text' : 'text-fg-muted'">
+                    {{ h === 'accepted' ? 'Qabul qilindi' : 'Rad etildi' }}
+                  </p>
+                } @else {
+                  <div class="flex gap-2 pt-2">
+                    <button appButton type="button" size="s" [loading]="busy() === req.id" (click)="respond(n, req, true, $event)">Qabul qilish</button>
+                    <button appButton type="button" variant="secondary" size="s" [disabled]="busy() === req.id" (click)="respond(n, req, false, $event)">Rad etish</button>
+                  </div>
+                }
+              }
+            </div>
+            @if (!n.isRead) {
+              <span class="absolute top-5 right-6 size-2.5 rounded-full bg-violet" aria-label="O'qilmagan"></span>
+            }
+            <button
+              type="button"
+              class="absolute right-4 bottom-4 flex size-8 items-center justify-center rounded-md text-fg-muted opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-coral-soft hover:text-coral-text"
+              aria-label="Bildirishnomani o'chirish"
+              (click)="remove(n, $event)"
+            >
+              <app-icon name="trash" [size]="16" />
+            </button>
+          </article>
+        }
+      </section>
+    }
+    @if (list.value()?.hasNext) {
+      <div class="flex justify-center">
+        <button appButton type="button" variant="secondary" icon="refresh" [loading]="list.isLoading()" (click)="limit.set(limit() + 30)">Ko'proq yuklash</button>
+      </div>
+    }
+  }
+</div>

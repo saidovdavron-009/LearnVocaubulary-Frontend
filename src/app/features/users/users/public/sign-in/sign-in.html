@@ -1,0 +1,59 @@
+<nav aria-label="Kirish yoki ro'yxatdan o'tish" class="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+  <a
+    routerLink="/login"
+    aria-current="page"
+    class="flex h-11 items-center justify-center rounded-lg bg-surface text-body-strong text-fg shadow-hard shadow-line"
+  >
+    Kirish
+  </a>
+  <a
+    routerLink="/register"
+    class="flex h-11 items-center justify-center rounded-lg text-body-strong text-fg-secondary transition-colors hover:text-fg"
+  >
+    Ro'yxatdan o'tish
+  </a>
+</nav>
+
+<h1 class="font-display text-h1 text-fg">Xush kelibsiz!</h1>
+<p class="mt-2 text-body-lg text-fg-secondary">Davom etish uchun hisobingizga kiring.</p>
+
+<app-oauth-buttons />
+
+<form [formGroup]="form" class="mt-5 flex flex-col gap-5" novalidate (ngSubmit)="submit()">
+  @if (error()) {
+    <app-alert>{{ error() }}</app-alert>
+  }
+
+  <app-input
+    label="Email"
+    icon="mail"
+    placeholder="siz@example.com"
+    autocomplete="username"
+    helper="Email yoki username"
+    formControlName="login"
+    [errorMessages]="{ required: 'Email yoki username kiriting' }"
+  />
+  <app-input
+    label="Parol"
+    icon="lock"
+    type="password"
+    placeholder="••••••••"
+    autocomplete="current-password"
+    formControlName="password"
+    [errorMessages]="{ required: 'Parolni kiriting' }"
+  />
+
+  <div class="flex items-center justify-between gap-3">
+    <label class="flex cursor-pointer items-center gap-2.5 text-body text-fg">
+      <app-checkbox label="Meni eslab qol" [(checked)]="remember" />
+      <span aria-hidden="true">Meni eslab qol</span>
+    </label>
+    <a routerLink="/forgot-password" class="text-body-strong text-violet-text hover:underline">Parolni unutdingizmi?</a>
+  </div>
+
+  <button appButton type="submit" size="l" icon="arrow-right" [block]="true" [loading]="loading()">Kirish</button>
+
+  <p class="text-center text-caption text-fg-muted">
+    Kirish orqali siz Foydalanish shartlari va Maxfiylik siyosatiga rozilik bildirasiz.
+  </p>
+</form>

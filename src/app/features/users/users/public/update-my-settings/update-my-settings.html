@@ -1,0 +1,179 @@
+@switch (state()) {
+  @case ('loading') {
+    <app-skeleton class="h-90 rounded-3xl" />
+    <app-skeleton class="h-56 rounded-3xl" />
+  }
+  @case ('error') {
+    <div class="rounded-3xl border-2 border-line bg-surface">
+      <app-error-state [message]="loadError()" (retry)="load()" />
+    </div>
+  }
+  @default {
+    <!-- O'rganish sozlamalari -->
+    <section id="learning" class="scroll-mt-6 rounded-3xl border-2 border-line bg-surface p-6 md:p-7" aria-labelledby="learning-title">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="learning-title" class="font-display text-h3 text-fg">O'rganish sozlamalari</h2>
+          <p class="mt-1 text-body text-fg-secondary">Kunlik maqsad va yangi so'zlar soni takrorlash jadvaliga ta'sir qiladi.</p>
+        </div>
+        <p class="shrink-0 pt-1 text-caption" aria-live="polite" [class]="saveState() === 'error' ? 'text-coral-text' : 'text-fg-muted'">
+          @switch (saveState()) {
+            @case ('saving') { Saqlanmoqda… }
+            @case ('saved') { Saqlandi }
+            @case ('error') { Saqlab bo'lmadi }
+          }
+        </p>
+      </div>
+
+      <div class="mt-4 flex flex-col">
+        <div class="flex flex-wrap items-center justify-between gap-4 py-4">
+          <p class="text-body-strong text-fg">O'rganiladigan til</p>
+          <app-select
+            label="O'rganiladigan til"
+            [hideLabel]="true"
+            size="m"
+            icon="book"
+            class="w-44"
+            placeholder="Tanlang"
+            [options]="languageOptions()"
+            [selected]="value().learningLanguageId ?? null"
+            (selectedChange)="onLanguage($event)"
+          />
+        </div>
+        <div class="h-px bg-line"></div>
+
+        <div class="flex flex-wrap items-center justify-between gap-4 py-4">
+          <div class="min-w-0 flex-1">
+            <p class="text-body-strong text-fg">Til darajasi</p>
+            <p class="text-body text-fg-secondary">
+              @if (selectedLevel(); as lv) {
+                {{ lv.code }} — {{ lv.title }}. Mashqda faqat shu darajadagi so'zlar beriladi.
+              } @else {
+                Daraja tanlanmagan — barcha so'zlar aralash beriladi.
+              }
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-1 rounded-xl bg-muted p-1" role="radiogroup" aria-label="Til darajasi">
+            @for (lv of levels; track lv.value) {
+              <button
+                type="button"
+                role="radio"
+                [attr.aria-checked]="value().cefrLevel === lv.value"
+                [title]="lv.code + ' — ' + lv.title"
+                class="h-10 min-w-12 rounded-lg px-3 text-body-strong transition-colors"
+                [class]="
+                  value().cefrLevel === lv.value
+                    ? 'bg-violet text-fg-inverse shadow-hard-sm shadow-violet-deep'
+                    : 'text-fg-secondary hover:text-fg'
+                "
+                (click)="onLevel(lv.value)"
+              >
+                {{ lv.code }}
+              </button>
+            }
+          </div>
+        </div>
+        <div class="h-px bg-line"></div>
+
+        <div class="flex flex-wrap items-center justify-between gap-4 py-4">
+          <div>
+            <p class="text-body-strong text-fg">Kunlik maqsad</p>
+            <p class="text-body text-fg-secondary">Har kuni o'rganiladigan so'zlar</p>
+          </div>
+          <div class="flex gap-1 rounded-xl bg-muted p-1" role="radiogroup" aria-label="Kunlik maqsad">
+            @for (goal of dailyGoals; track goal) {
+              <button
+                type="button"
+                role="radio"
+                [attr.aria-checked]="value().dailyGoalWords === goal"
+                class="h-10 min-w-12 rounded-lg px-3 text-body-strong transition-colors"
+                [class]="
+                  value().dailyGoalWords === goal
+                    ? 'bg-violet text-fg-inverse shadow-hard-sm shadow-violet-deep'
+                    : 'text-fg-secondary hover:text-fg'
+                "
+                (click)="patch({ dailyGoalWords: goal })"
+              >
+                {{ goal }}
+              </button>
+            }
+          </div>
+        </div>
+        <div class="h-px bg-line"></div>
+
+        <div class="flex flex-wrap items-center justify-between gap-4 py-4">
+          <div>
+            <label for="new-words" class="text-body-strong text-fg">Yangi so'zlar / kun</label>
+            <p class="text-body text-fg-secondary">Takrorlashdan tashqari yangi so'zlar limiti</p>
+          </div>
+          <div class="flex items-center gap-4">
+            <input
+              id="new-words"
+              type="range"
+              min="0"
+              [max]="newWordsMax()"
+              step="1"
+              class="h-2 w-56 cursor-pointer appearance-none rounded-full accent-violet"
+              [style.background]="
+                'linear-gradient(to right, var(--color-violet) ' +
+                newWordsPercent() +
+                '%, var(--color-muted) ' +
+                newWordsPercent() +
+                '%)'
+              "
+              [value]="value().newWordsPerDay"
+              (input)="onNewWords($event)"
+            />
+            <span class="w-8 text-right text-body-strong text-fg">{{ value().newWordsPerDay }}</span>
+          </div>
+        </div>
+        <div class="h-px bg-line"></div>
+
+        <div class="flex items-center justify-between gap-4 py-4">
+          <p class="text-body-strong text-fg">Ovozli effektlar</p>
+          <app-toggle label="Ovozli effektlar" [checked]="value().soundEnabled" (checkedChange)="patch({ soundEnabled: $event })" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Eslatmalar -->
+    <section id="notifications" class="scroll-mt-6 rounded-3xl border-2 border-line bg-surface p-6 md:p-7" aria-labelledby="reminders-title">
+      <h2 id="reminders-title" class="font-display text-h3 text-fg">Eslatmalar</h2>
+      <div class="mt-2 flex flex-col">
+        <div class="flex flex-wrap items-center justify-between gap-4 py-4">
+          <div>
+            <p class="text-body-strong text-fg">Kunlik eslatma</p>
+            <p class="text-body text-fg-secondary">Belgilangan vaqtda mashq qilishni eslatamiz</p>
+          </div>
+          <div class="flex items-center gap-4">
+            <app-select
+              label="Eslatma vaqti"
+              [hideLabel]="true"
+              size="m"
+              icon="clock"
+              class="w-32"
+              [options]="timeOptions"
+              [selected]="value().reminderTime ?? null"
+              (selectedChange)="onReminderTime($event)"
+            />
+            <app-toggle label="Kunlik eslatma" [checked]="value().reminderEnabled" (checkedChange)="patch({ reminderEnabled: $event })" />
+          </div>
+        </div>
+        <div class="h-px bg-line"></div>
+        <div class="flex flex-wrap items-center justify-between gap-4 py-4">
+          <div>
+            <p class="text-body-strong text-fg">Telegram bot</p>
+            <p class="text-body text-fg-secondary">Eslatma va takrorlanadigan so'zlar Telegram bot orqali keladi</p>
+          </div>
+          @if (telegramConnected()) {
+            <span class="inline-flex items-center gap-1.5 rounded-lg bg-mint-soft px-3 py-1.5 text-label text-mint-text">
+              <app-icon name="check" [size]="14" /> Ulangan
+            </span>
+          } @else {
+            <span class="rounded-lg bg-muted px-3 py-1.5 text-label text-fg-secondary">Ulanmagan</span>
+          }
+        </div>
+      </div>
+    </section>
+  }
+}

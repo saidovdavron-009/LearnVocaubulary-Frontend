@@ -1,0 +1,300 @@
+<!-- Seans paneli: yopish, progress, hisob, XP, yuraklar -->
+<header class="flex items-center gap-3 px-4 py-4 md:gap-5 md:px-12 md:py-6">
+  <button
+    type="button"
+    class="flex size-12 shrink-0 items-center justify-center rounded-input border-2 border-line bg-surface text-fg transition-colors hover:bg-muted"
+    aria-label="Mashqni yakunlash"
+    (click)="finish()"
+  >
+    <app-icon name="x" [size]="22" />
+  </button>
+  <div
+    class="h-4 flex-1 overflow-hidden rounded-full bg-muted"
+    role="progressbar"
+    aria-label="Mashq jarayoni"
+    [attr.aria-valuenow]="answered()"
+    aria-valuemin="0"
+    [attr.aria-valuemax]="total()"
+  >
+    <div class="h-full rounded-full bg-mint transition-[width] duration-300" [style.width.%]="progress()"></div>
+  </div>
+  @if (total()) {
+    <span class="shrink-0 text-body-strong text-fg-secondary">{{ answered() }} / {{ total() }}</span>
+  }
+  @if (level(); as lv) {
+    <span
+      class="hidden shrink-0 items-center gap-1.5 rounded-lg bg-violet-soft py-2.5 pr-3.5 pl-3 text-body-strong text-violet-text md:inline-flex"
+      [attr.aria-label]="lv.code + ' darajasi: ' + levelLearned() + ' / ' + levelTotal() + ' so‘z o‘rganilgan'"
+      [title]="lv.code + ' — ' + lv.title"
+    >
+      <app-icon name="target" [size]="18" /> {{ lv.code }}
+      @if (levelTotal()) {
+        · {{ levelLearned() }}/{{ levelTotal() }}
+      }
+    </span>
+  }
+  <span class="hidden shrink-0 items-center gap-1.5 rounded-lg bg-yellow-soft py-2.5 pr-3.5 pl-3 text-body-strong text-fg sm:inline-flex">
+    <app-icon name="bolt" [size]="18" class="text-yellow-text" /> +{{ formatNumber(sessionXp()) }} XP
+  </span>
+  <span
+    class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-coral-soft py-2.5 pr-3.5 pl-3 text-body-strong text-fg"
+    [attr.aria-label]="hearts() + ' ta yurak qoldi'"
+  >
+    <app-icon name="heart" [size]="18" class="text-coral-strong" /> {{ hearts() }}
+  </span>
+  <span class="hidden w-41 shrink-0 xl:block" aria-hidden="true"></span>
+</header>
+
+<main class="flex flex-1 flex-col items-center justify-center px-4 pb-10">
+  @switch (phase()) {
+    @case ('loading') {
+      <div class="flex flex-col items-center gap-4 text-fg-secondary" role="status">
+        <span class="size-10 animate-spin rounded-full border-4 border-violet border-r-transparent" aria-hidden="true"></span>
+        Mashq tayyorlanmoqda...
+      </div>
+    }
+    @case ('error') {
+      <div class="w-full max-w-130 rounded-2xl border-2 border-line bg-surface">
+        <app-error-state title="Mashqni boshlab bo'lmadi" [message]="error()" (retry)="load()" />
+      </div>
+    }
+    @case ('empty') {
+      <div class="w-full max-w-130 rounded-2xl border-2 border-line bg-surface">
+        <app-empty-state icon="check" [title]="emptyTitle()" [text]="emptyText()">
+          <div class="flex flex-wrap justify-center gap-2.5">
+            <a appButton routerLink="/vocabulary" variant="soft" size="s" icon="book">Lug'at</a>
+            <a appButton routerLink="/decks" size="s" icon="layers">To'plamlar</a>
+          </div>
+        </app-empty-state>
+      </div>
+    }
+    @case ('finishing') {
+      <div class="flex flex-col items-center gap-4 text-fg-secondary" role="status">
+        <span class="size-10 animate-spin rounded-full border-4 border-violet border-r-transparent" aria-hidden="true"></span>
+        Natijalar hisoblanmoqda...
+      </div>
+    }
+    @default {
+      @if (current(); as q) {
+        <section class="flex w-full max-w-190 flex-col items-center gap-7" aria-live="polite">
+          @if (q.exercise === 'multiple_choice') {
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-violet-soft py-1.5 pr-3.5 pl-3 text-label text-violet-text">
+              <app-icon name="choice" [size]="16" /> Test · 4 variant
+            </span>
+            <div class="flex flex-col items-center gap-3 text-center">
+              <p class="text-body-lg text-fg-secondary">Bu so'zning tarjimasini tanlang</p>
+              <div class="flex items-center gap-4">
+                <button
+                  type="button"
+                  class="flex size-14 shrink-0 items-center justify-center rounded-full bg-violet text-fg-inverse shadow-hard-md shadow-violet-deep transition-[translate,box-shadow] active:translate-y-0.5 active:shadow-hard-sm"
+                  [attr.aria-label]="q.item.text + ' talaffuzi'"
+                  [attr.aria-pressed]="speaking()"
+                  (click)="speak()"
+                >
+                  <app-icon name="speaker" [size]="24" />
+                </button>
+                <h1 class="font-display text-h1 break-all text-fg md:text-[64px] md:leading-[67px] md:tracking-[-2px]">{{ q.item.text }}</h1>
+              </div>
+              @if (q.item.transcription) {
+                <p class="text-body-lg text-fg-muted">{{ q.item.transcription }}</p>
+              }
+            </div>
+            <div class="grid w-full gap-3.5 sm:grid-cols-2" role="group" aria-label="Javob variantlari">
+              @for (option of q.options; track option; let i = $index) {
+                @let state = optionState(option);
+                <button
+                  type="button"
+                  class="flex min-h-19.5 items-center gap-3.5 rounded-card border-2 px-4.5 py-5 text-left shadow-hard transition-[translate,box-shadow,background-color,border-color] duration-150 disabled:cursor-default"
+                  [class]="
+                    state === 'correct'
+                      ? 'border-mint bg-mint-soft shadow-mint'
+                      : state === 'wrong'
+                        ? 'border-coral-strong bg-coral-soft shadow-coral-strong'
+                        : state === 'dim'
+                          ? 'border-line bg-surface opacity-60 shadow-line'
+                          : 'border-line bg-surface shadow-line hover:border-violet active:translate-y-0.5 active:shadow-hard-sm'
+                  "
+                  [disabled]="phase() !== 'question' || submitting()"
+                  [attr.aria-pressed]="selected() === option"
+                  (click)="choose(option)"
+                >
+                  <span
+                    class="flex size-8.5 shrink-0 items-center justify-center rounded-md text-body-strong"
+                    [class]="
+                      state === 'correct'
+                        ? 'bg-mint text-fg-inverse'
+                        : state === 'wrong'
+                          ? 'bg-coral-strong text-fg-inverse'
+                          : 'bg-muted text-fg-secondary'
+                    "
+                  >
+                    @if (state === 'correct') {
+                      <app-icon name="check" [size]="18" />
+                    } @else if (state === 'wrong') {
+                      <app-icon name="x" [size]="18" />
+                    } @else {
+                      {{ i + 1 }}
+                    }
+                  </span>
+                  <span
+                    class="font-display text-h3"
+                    [class]="state === 'correct' ? 'text-mint-text' : state === 'wrong' ? 'text-coral-text' : 'text-fg'"
+                    >{{ option }}</span
+                  >
+                </button>
+              }
+            </div>
+          } @else {
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-soft py-1.5 pr-3.5 pl-3 text-label text-blue-text">
+              @if (q.exercise === 'listening') {
+                <app-icon name="headphones" [size]="16" /> Tinglash · Yozish
+              } @else {
+                <app-icon name="keyboard" [size]="16" /> Yozish
+              }
+            </span>
+            @if (q.exercise === 'listening') {
+              <p class="text-body-lg text-fg-secondary">Eshitgan so'zingizni yozing</p>
+              <div class="flex items-center gap-4">
+                <button
+                  type="button"
+                  class="flex size-30 items-center justify-center rounded-full bg-violet text-fg-inverse shadow-[0_7px_0_0_var(--color-violet-deep)] transition-[translate,box-shadow] active:translate-y-1 active:shadow-hard-sm"
+                  aria-label="So'zni tinglash"
+                  [attr.aria-pressed]="speaking()"
+                  (click)="speak()"
+                >
+                  <app-icon name="speaker" [size]="52" />
+                </button>
+                <div class="flex flex-col items-center gap-1.5">
+                  <button
+                    type="button"
+                    class="flex size-14 items-center justify-center rounded-full bg-violet-soft text-violet-text transition-colors hover:bg-line"
+                    aria-label="Sekin tinglash"
+                    (click)="speak(true)"
+                  >
+                    <app-icon name="clock" [size]="24" />
+                  </button>
+                  <span class="text-caption text-fg-secondary">Sekin</span>
+                </div>
+              </div>
+              <div class="flex h-10 items-center gap-1" aria-hidden="true">
+                @for (h of [12, 22, 32, 18, 40, 24, 14, 30, 36, 20, 12, 26, 34, 16, 22, 28]; track $index) {
+                  <span
+                    class="w-1 rounded-full bg-blue transition-[height] duration-300"
+                    [style.height.px]="speaking() ? h : Math.max(6, h / 3)"
+                  ></span>
+                }
+              </div>
+            } @else {
+              <p class="text-body-lg text-fg-secondary">Tarjimaga mos inglizcha so'zni yozing</p>
+              <h1 class="text-center font-display text-h1 text-fg">{{ q.item.translations.join(', ') }}</h1>
+            }
+
+            @let fb = feedback();
+            <div class="flex w-full flex-col gap-2.5">
+              <label
+                class="flex h-18 items-center gap-3 rounded-card border-2 pr-4 pl-6 transition-[border-color,box-shadow,background-color]"
+                [class]="
+                  fb ? (fb.correct ? 'border-mint bg-mint-soft' : 'border-coral-strong bg-coral-soft') : 'border-line bg-surface focus-within:border-violet focus-within:shadow-focus'
+                "
+              >
+                <span class="sr-only">Javob</span>
+                <input
+                  #answerInput
+                  type="text"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  placeholder="Javobni yozing..."
+                  class="min-w-0 flex-1 bg-transparent font-display text-h2 outline-none placeholder:font-sans placeholder:text-body-lg placeholder:font-normal placeholder:text-fg-muted"
+                  [class]="fb ? (fb.correct ? 'text-mint-text' : 'text-coral-text') : 'text-fg'"
+                  [value]="typed()"
+                  [readOnly]="phase() !== 'question'"
+                  (input)="onTyped($event)"
+                />
+                @if (fb) {
+                  <app-icon [name]="fb.correct ? 'check' : 'x'" [size]="24" [class]="fb.correct ? 'text-mint-text' : 'text-coral-text'" />
+                } @else if (typed()) {
+                  <button type="button" class="text-fg-muted hover:text-fg" aria-label="Tozalash" (click)="typed.set('')">
+                    <app-icon name="x" [size]="20" />
+                  </button>
+                }
+              </label>
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-caption text-fg-muted">Klaviatura:</span>
+                  @for (key of specialKeys; track key) {
+                    <button
+                      type="button"
+                      class="h-8.25 min-w-7.5 rounded-sm border-2 border-line bg-surface px-2.5 text-body-strong text-fg hover:border-line-strong disabled:opacity-50"
+                      [disabled]="phase() !== 'question'"
+                      (click)="insertKey(key)"
+                    >
+                      {{ key }}
+                    </button>
+                  }
+                </div>
+                @if (phase() === 'question') {
+                  <button appButton type="button" [disabled]="!typed().trim()" [loading]="submitting()" icon="check" (click)="checkTyped()">
+                    Tekshirish
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </section>
+      }
+    }
+  }
+</main>
+
+<!-- Javob natijasi paneli -->
+@if (phase() === 'feedback' && feedback(); as fb) {
+  @let q = current()!;
+  <div
+    class="fade-in sticky bottom-0 flex flex-col gap-4 border-t px-4 py-6 sm:flex-row sm:items-center sm:gap-4.5 md:px-30 md:pt-6 md:pb-7"
+    [class]="fb.correct ? 'border-mint bg-mint-soft' : 'border-coral-strong bg-coral-soft'"
+    role="status"
+  >
+    <span
+      class="flex size-15 shrink-0 items-center justify-center rounded-full text-fg-inverse"
+      [class]="fb.correct ? 'bg-mint' : 'bg-coral-strong'"
+      aria-hidden="true"
+    >
+      <app-icon [name]="fb.correct ? 'check' : 'x'" [size]="30" />
+    </span>
+    <div class="flex min-w-0 flex-1 flex-col gap-1">
+      @if (fb.correct) {
+        <p class="font-display text-h2 text-mint-text">Ajoyib! To'g'ri javob</p>
+        <p class="text-body font-semibold text-mint-text">
+          {{ q.item.text }} — {{ q.item.translations[0] }}
+          @if (q.item.exampleSentence) {
+            · {{ q.item.exampleSentence }}
+          }
+        </p>
+      } @else {
+        <p class="font-display text-h3 text-coral-text">
+          {{ fb.almost ? "Deyarli! To'g'ri yozilishi:" : q.exercise === 'multiple_choice' ? "To'g'ri javob:" : "To'g'ri yozilishi:" }}
+        </p>
+        <p class="font-display text-h2 text-fg">{{ q.item.text }} — {{ q.item.translations[0] }}</p>
+        @if (q.item.exampleSentence) {
+          <p class="flex items-center gap-1.5 text-body font-semibold text-coral-text">
+            <app-icon name="lightbulb" [size]="16" /> {{ q.item.exampleSentence }}
+          </p>
+        }
+      }
+    </div>
+    @if (fb.xp > 0) {
+      <span class="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-surface py-2.5 pr-3.5 pl-3 text-body-strong text-fg sm:self-center">
+        <app-icon name="bolt" [size]="18" class="text-yellow-text" /> +{{ fb.xp }} XP
+      </span>
+    }
+    <button appButton type="button" size="l" [variant]="fb.correct ? 'primary' : 'dark'" icon="arrow-right" (click)="next()">
+      {{ fb.correct ? 'Davom etish' : 'Tushundim' }}
+    </button>
+  </div>
+}
+
+<!-- Daraja tugatilganda: tabrik oynasi + konfetti -->
+@if (levelUp(); as lu) {
+  <app-level-up-celebration [levelUp]="lu" (closed)="levelUp.set(null)" />
+}

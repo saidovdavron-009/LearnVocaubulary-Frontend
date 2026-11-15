@@ -1,0 +1,272 @@
+<!-- Holat kartochkalari (bosilganda shu holat bo'yicha filtr) -->
+<div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+  @for (card of statusCards; track card.status) {
+    <button
+      type="button"
+      class="flex items-center gap-3.5 rounded-card px-4.5 py-4 text-left transition-[box-shadow] hover:shadow-[inset_0_0_0_2px_var(--color-line-strong)]"
+      [class]="card.box + (status() === card.status ? ' shadow-[inset_0_0_0_2px_currentColor] ' + card.text : '')"
+      [attr.aria-pressed]="status() === card.status"
+      (click)="toggleStatus(card.status)"
+    >
+      <span class="flex size-11 shrink-0 items-center justify-center rounded-input bg-surface" [class]="card.text">
+        <app-icon [name]="card.icon" [size]="20" />
+      </span>
+      <span class="flex flex-col">
+        @if (count(card.status) === null) {
+          <app-skeleton class="h-8 w-10" />
+        } @else {
+          <span class="font-display text-h2 text-fg">{{ formatNumber(count(card.status)!) }}</span>
+        }
+        <span class="text-label" [class]="card.text">{{ card.label }}</span>
+      </span>
+    </button>
+  }
+</div>
+
+<section class="overflow-hidden rounded-2xl border-2 border-line bg-surface" aria-label="Mening so'zlarim">
+  <!-- Tablar va asboblar -->
+  <div class="flex flex-col gap-3 px-5 pt-4.5 pb-3.5 xl:flex-row xl:items-center xl:justify-between">
+    <div role="tablist" aria-label="Filtr" class="flex gap-1.5 overflow-x-auto pb-1 xl:pb-0">
+      @for (t of tabs; track t.id) {
+        <button appTab [active]="tab() === t.id" [count]="count(t.id)" (click)="setTab(t.id)">{{ t.label }}</button>
+      }
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <label
+        class="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border-2 border-line bg-page px-3.5 focus-within:border-violet focus-within:shadow-focus sm:w-55 sm:flex-none"
+      >
+        <app-icon name="search" [size]="18" class="text-fg-muted" />
+        <span class="sr-only">So'z qidirish</span>
+        <input
+          type="search"
+          placeholder="Qidirish..."
+          class="min-w-0 flex-1 bg-transparent text-body font-semibold text-fg outline-none placeholder:text-fg-muted"
+          (input)="onSearch($event)"
+        />
+      </label>
+      <div class="relative">
+        <button
+          type="button"
+          class="flex h-11 items-center gap-2 rounded-lg border-2 border-line bg-surface px-3.5 text-body-strong text-fg hover:bg-muted"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="sortOpen()"
+          (click)="sortOpen.set(!sortOpen())"
+        >
+          <app-icon name="filter" [size]="18" /> {{ sortBy() === 'next_review' ? 'Saralash' : sortLabel() }}
+        </button>
+        @if (sortOpen()) {
+          <div class="fade-in absolute right-0 z-20 mt-2 flex w-52 flex-col rounded-xl border-2 border-line bg-surface p-1.5 shadow-card" role="menu">
+            @for (s of sorts; track s.id) {
+              <button
+                type="button"
+                role="menuitemradio"
+                [attr.aria-checked]="sortBy() === s.id"
+                class="flex items-center justify-between rounded-md px-3 py-2.5 text-left text-body-strong hover:bg-muted"
+                [class]="sortBy() === s.id ? 'text-violet-text' : 'text-fg'"
+                (click)="setSort(s.id)"
+              >
+                {{ s.label }}
+                @if (sortBy() === s.id) {
+                  <app-icon name="check" [size]="16" />
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+      <button
+        type="button"
+        class="flex h-11 items-center gap-2 rounded-lg border-2 border-line bg-surface px-3.5 text-body-strong text-fg hover:bg-muted disabled:opacity-60"
+        [disabled]="exporting() || !items().length"
+        (click)="export()"
+      >
+        @if (exporting()) {
+          <span class="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden="true"></span>
+        } @else {
+          <app-icon name="arrow-right" [size]="18" />
+        }
+        Eksport
+      </button>
+    </div>
+  </div>
+
+  <!-- Ommaviy amallar -->
+  @if (selected().size) {
+    <div class="fade-in flex flex-wrap items-center gap-3 bg-ink px-5 py-2.5 text-fg-inverse">
+      <app-checkbox label="Tanlovni bekor qilish" [checked]="true" (checkedChange)="clearSelection()" />
+      <span class="flex-1 text-body-strong">{{ selected().size }} ta so'z tanlandi</span>
+      <div class="flex flex-wrap gap-2">
+        <a routerLink="/study" class="inline-flex h-8.25 items-center gap-1.5 rounded-md bg-fg-inverse/10 px-3 text-label hover:bg-fg-inverse/20">
+          <app-icon name="play" [size]="16" /> Hozir takrorlash
+        </a>
+        <button type="button" class="inline-flex h-8.25 items-center gap-1.5 rounded-md bg-fg-inverse/10 px-3 text-label hover:bg-fg-inverse/20" [disabled]="busy()" (click)="openDeckModal()">
+          <app-icon name="layers" [size]="16" /> To'plamga qo'shish
+        </button>
+        <button type="button" class="inline-flex h-8.25 items-center gap-1.5 rounded-md bg-fg-inverse/10 px-3 text-label hover:bg-fg-inverse/20" [disabled]="busy()" (click)="bulk('favorite')">
+          <app-icon name="star" [size]="16" /> Sevimli
+        </button>
+        <button type="button" class="inline-flex h-8.25 items-center gap-1.5 rounded-md bg-fg-inverse/10 px-3 text-label hover:bg-fg-inverse/20" [disabled]="busy()" (click)="bulk('reset')">
+          <app-icon name="refresh" [size]="16" /> Qayta boshlash
+        </button>
+        <button type="button" class="inline-flex h-8.25 items-center gap-1.5 rounded-md bg-fg-inverse/10 px-3 text-label text-coral hover:bg-fg-inverse/20" [disabled]="busy()" (click)="bulk('remove')">
+          <app-icon name="trash" [size]="16" /> O'chirish
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Jadval -->
+  @if (words.isLoading() && !items().length) {
+    <div class="flex flex-col gap-2 p-5">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <app-skeleton class="h-13" />
+      }
+    </div>
+  } @else if (words.error()) {
+    <app-error-state (retry)="words.reload()" />
+  } @else if (!items().length) {
+    @if (search() || tab() !== 'all' || status()) {
+      <app-empty-state icon="search" title="Hech narsa topilmadi" text="Boshqa filtr yoki qidiruvni sinab ko'ring." />
+    } @else {
+      <app-empty-state icon="star" title="Hali so'z qo'shilmagan" text="Lug'atdan so'zlarni «Qo'shish» tugmasi bilan qo'shing.">
+        <a appButton routerLink="/vocabulary" size="s" icon="book">Lug'atga o'tish</a>
+      </app-empty-state>
+    }
+  } @else {
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-270 border-collapse text-left">
+        <thead class="bg-muted">
+          <tr class="text-label-caps text-fg-secondary uppercase">
+            <th class="w-11 py-3.5 pr-2.5 pl-5">
+              <app-checkbox label="Hammasini tanlash" [checked]="allSelected()" [indeterminate]="someSelected()" (checkedChange)="toggleAll($event)" />
+            </th>
+            <th class="px-2.5 py-3.5">So'z</th>
+            <th class="px-2.5 py-3.5">Tarjima</th>
+            <th class="px-2.5 py-3.5">To'plam</th>
+            <th class="px-2.5 py-3.5">Daraja</th>
+            <th class="px-2.5 py-3.5">Holat</th>
+            <th class="px-2.5 py-3.5">Xotira</th>
+            <th class="px-2.5 py-3.5">Xato</th>
+            <th class="px-2.5 py-3.5">Keyingi takror</th>
+            <th class="py-3.5 pr-5 pl-2.5"><span class="sr-only">Amallar</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (w of items(); track w.wordId) {
+            @let isSelected = selected().has(w.wordId);
+            @let next = nextReview(w);
+            <tr class="border-t border-muted transition-colors" [class]="isSelected ? 'bg-violet-soft' : 'hover:bg-page'">
+              <td class="py-3 pr-2.5 pl-5">
+                <app-checkbox [label]="w.text + ' tanlash'" [checked]="isSelected" (checkedChange)="toggle(w.wordId, $event)" />
+              </td>
+              <td class="px-2.5 py-3">
+                <div class="flex items-center gap-2.5">
+                  <app-avatar [name]="w.text" [size]="36" />
+                  <a [routerLink]="['/words', w.wordId]" class="flex min-w-0 flex-col hover:text-violet-text">
+                    <span class="flex items-center gap-1.5 text-body-strong text-fg">
+                      {{ w.text }}
+                      @if (w.isFavorite) {
+                        <app-icon name="star" [size]="14" class="text-yellow-deep" aria-label="Sevimli" />
+                      }
+                    </span>
+                    @if (w.transcription) {
+                      <span class="text-caption text-fg-muted">{{ w.transcription }}</span>
+                    }
+                  </a>
+                </div>
+              </td>
+              <td class="max-w-36 truncate px-2.5 py-3 text-body font-semibold text-fg">{{ w.primaryTranslation || '—' }}</td>
+              <td class="max-w-36 truncate px-2.5 py-3 text-body font-semibold text-fg-secondary">{{ w.deckTitle || '—' }}</td>
+              <td class="px-2.5 py-3">
+                @if (w.cefrLevel) {
+                  <span class="rounded-sm bg-muted px-2.5 py-1.25 text-label text-fg-secondary">{{ w.cefrLevel.toUpperCase() }}</span>
+                }
+              </td>
+              <td class="px-2.5 py-3"><app-badge [status]="w.status" /></td>
+              <td class="px-2.5 py-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="h-2 w-20 overflow-hidden rounded-full bg-muted" role="img" [attr.aria-label]="'Xotira ' + w.memoryPercent + '%'">
+                    <div class="h-full rounded-full" [class]="memoryColor[w.status]" [style.width.%]="w.memoryPercent"></div>
+                  </div>
+                  <span class="w-9 text-caption text-fg-secondary">{{ w.memoryPercent }}%</span>
+                </div>
+              </td>
+              <td class="px-2.5 py-3 text-body-strong" [class]="w.lapses >= 2 ? 'text-coral-strong' : 'text-fg'">{{ w.lapses }}</td>
+              <td class="px-2.5 py-3">
+                @if (next.urgent) {
+                  <span class="inline-flex items-center gap-1 rounded-md bg-coral-soft px-2 py-1 text-label text-coral-text">
+                    <app-icon name="clock" [size]="14" /> {{ next.text }}
+                  </span>
+                } @else {
+                  <span class="text-body font-semibold text-fg-secondary">{{ next.text }}</span>
+                }
+              </td>
+              <td class="py-3 pr-5 pl-2.5">
+                <div class="flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    class="flex size-8 items-center justify-center rounded-md text-fg-secondary hover:bg-muted hover:text-fg"
+                    [attr.aria-label]="w.text + ' talaffuzi'"
+                    (click)="speak(w)"
+                  >
+                    <app-icon name="play" [size]="18" />
+                  </button>
+                  <app-menu [label]="w.text + ' amallari'" triggerClass="size-8 text-fg-secondary hover:bg-muted hover:text-fg">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-left text-body-strong text-fg hover:bg-muted"
+                      (click)="toggleFavorite(w)"
+                    >
+                      <app-icon name="star" [size]="18" /> {{ w.isFavorite ? 'Sevimlilardan olish' : "Sevimlilarga qo'shish" }}
+                    </button>
+                    <app-reset-my-word [wordId]="w.wordId" (done)="reloadAll()" />
+                    <app-remove-my-word [wordId]="w.wordId" (removed)="reloadAll()" />
+                  </app-menu>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (words.hasValue()) {
+      <app-pagination
+        class="border-t-2 border-line px-5 py-4"
+        [page]="words.value().page"
+        [pageSize]="pageSize()"
+        [totalCount]="words.value().totalCount"
+        [totalPages]="words.value().totalPages"
+        (pageChange)="setPage($event)"
+        (pageSizeChange)="setPageSize($event)"
+      />
+    }
+  }
+</section>
+
+<app-modal [(open)]="deckModalOpen" title="To'plamga qo'shish" [description]="selected().size + ' ta so‘z tanlangan to‘plamga qo‘shiladi.'">
+  @if (decks() === null) {
+    <app-skeleton class="h-12" />
+    <app-skeleton class="h-12" />
+  } @else if (!decks()!.length) {
+    <app-empty-state icon="layers" title="Sizda hali to'plam yo'q" text="Avval «To'plamlar» sahifasida to'plam yarating.">
+      <a appButton routerLink="/decks" size="s" icon="plus">To'plam yaratish</a>
+    </app-empty-state>
+  } @else {
+    <ul class="flex max-h-80 flex-col gap-2 overflow-y-auto">
+      @for (d of decks(); track d.id) {
+        <li>
+          <button
+            type="button"
+            class="flex w-full items-center justify-between gap-3 rounded-input border-2 border-line px-4 py-3 text-left hover:border-violet disabled:opacity-60"
+            [disabled]="busy()"
+            (click)="addToDeck(d)"
+          >
+            <span class="text-body-strong text-fg">{{ d.title }}</span>
+            <span class="text-caption text-fg-muted">{{ d.wordsCount }} so'z</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</app-modal>

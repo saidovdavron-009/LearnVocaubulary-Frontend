@@ -1,0 +1,436 @@
+<div class="flex flex-col gap-6">
+  <!-- 1-qator: bugungi mashg'ulot + kunlik maqsad -->
+  <div class="grid gap-5 xl:grid-cols-[1fr_300px]">
+    <section
+      class="relative min-h-62.5 overflow-hidden rounded-3xl bg-violet px-6 py-7 text-fg-inverse shadow-hard-md shadow-violet-deep md:px-8"
+      aria-labelledby="today-title"
+    >
+      <div
+        class="absolute -top-30 -right-27.5 size-65 rounded-full bg-yellow"
+        aria-hidden="true"
+      ></div>
+      <div
+        class="absolute -right-10 -bottom-24 size-38 rotate-[-18deg] rounded-4xl bg-coral"
+        aria-hidden="true"
+      ></div>
+
+      <div class="relative flex max-w-150 flex-col items-start gap-3.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full bg-fg-inverse/15 px-3 py-1.5 text-label"
+          >
+            <app-icon name="clock" [size]="14" /> Bugungi mashg'ulot
+            @if (queue.hasValue() && estimatedMinutes()) {
+              · ~{{ estimatedMinutes() }} daqiqa
+            }
+          </span>
+          @if (levelInfo(); as lv) {
+            <a
+              routerLink="/settings"
+              fragment="learning"
+              class="inline-flex items-center gap-1.5 rounded-full bg-yellow px-3 py-1.5 text-label text-fg transition-transform hover:-translate-y-0.5"
+              [attr.aria-label]="
+                lv.code +
+                ' darajasi, ' +
+                lv.learned +
+                ' / ' +
+                lv.total +
+                ' so‘z o‘rganilgan. Darajani o‘zgartirish'
+              "
+            >
+              <app-icon name="target" [size]="14" /> {{ lv.code }} · {{ lv.title }} ·
+              {{ lv.learned }}/{{ lv.total }} so'z
+            </a>
+          }
+        </div>
+        @if (queue.isLoading()) {
+          <app-skeleton class="h-12 w-3/4 !bg-fg-inverse/20" />
+          <app-skeleton class="h-14 w-72 !bg-fg-inverse/20" />
+        } @else if (queue.hasValue() ? queue.value() : null; as q) {
+          <h1
+            id="today-title"
+            class="font-display text-h2 md:text-[36px] md:leading-10 md:tracking-[-1px]"
+          >
+            @if (q.dueCount > 0) {
+              {{ q.dueCount }} ta so'z takrorlashni kutmoqda
+            } @else if (newAvailable() > 0) {
+              Bugun {{ newAvailable() }} ta yangi so'z kutmoqda
+            } @else {
+              Bugungi rejangiz bajarildi!
+            }
+          </h1>
+          <dl class="flex gap-5">
+            <div>
+              <dt class="sr-only">Takrorlash</dt>
+              <dd class="font-display text-h2 text-yellow">{{ q.dueCount }}</dd>
+              <dd class="text-caption text-violet-soft">takrorlash</dd>
+            </div>
+            <div>
+              <dt class="sr-only">Yangi so'z</dt>
+              <dd class="font-display text-h2 text-yellow">{{ newAvailable() }}</dd>
+              <dd class="text-caption text-violet-soft">yangi so'z</dd>
+            </div>
+            @if (possibleXp(); as xp) {
+              <div>
+                <dt class="sr-only">Mumkin bo'lgan XP</dt>
+                <dd class="font-display text-h2 text-yellow">+{{ xp }}</dd>
+                <dd class="text-caption text-violet-soft">XP mumkin</dd>
+              </div>
+            }
+          </dl>
+          <div class="flex flex-wrap gap-2.5 pt-1">
+            <a appButton routerLink="/study" variant="yellow" size="l" icon="play"
+              >Mashqni boshlash</a
+            >
+            <a
+              routerLink="/study"
+              [queryParams]="{ mode: 'new' }"
+              class="flex h-14 items-center rounded-xl border-2 border-fg-inverse/40 px-5 text-body-strong text-fg-inverse transition-colors hover:bg-fg-inverse/10"
+            >
+              Faqat yangi so'zlar
+            </a>
+          </div>
+        } @else {
+          <h1 id="today-title" class="font-display text-h2">Navbatni yuklab bo'lmadi</h1>
+          <button appButton type="button" variant="yellow" icon="refresh" (click)="queue.reload()">
+            Qayta urinish
+          </button>
+        }
+      </div>
+    </section>
+
+    <section
+      class="flex flex-col items-center justify-center gap-3.5 rounded-2xl border-2 border-line bg-surface px-6 py-5.5 text-center"
+      aria-labelledby="goal-title"
+    >
+      <h2 id="goal-title" class="text-label-caps text-fg-secondary uppercase">Kunlik maqsad</h2>
+      @if (stats.isLoading()) {
+        <app-skeleton class="size-32 rounded-full" />
+      } @else if (stats.hasValue() ? stats.value() : null; as s) {
+        <app-progress-ring
+          [value]="s.today.newWords"
+          [max]="s.today.dailyGoal"
+          [size]="130"
+          [stroke]="16"
+          color="mint"
+          label="Kunlik maqsad"
+        >
+          <span class="font-display text-h2 text-fg"
+            >{{ s.today.newWords }}/{{ s.today.dailyGoal }}</span
+          >
+        </app-progress-ring>
+        <p class="text-body-strong text-fg">
+          {{
+            s.today.goalReached
+              ? 'Maqsadga erishdingiz!'
+              : 'Yana ' + goalLeft() + " ta so'z — maqsadga yetasiz!"
+          }}
+        </p>
+      } @else {
+        <app-error-state title="Yuklab bo'lmadi" (retry)="stats.reload()" />
+      }
+    </section>
+  </div>
+
+  <!-- 2-qator: 4 ta ko'rsatkich -->
+  <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    @if (stats.isLoading()) {
+      @for (i of [1, 2, 3, 4]; track i) {
+        <app-skeleton class="h-42 rounded-2xl" />
+      }
+    } @else if (stats.hasValue() ? stats.value() : null; as s) {
+      <div class="flex flex-col gap-3 rounded-2xl border-2 border-line bg-surface px-6 py-5.5">
+        <div class="flex items-start justify-between">
+          <p class="text-body font-semibold text-fg-secondary">Jami so'zlar</p>
+          <span
+            class="flex size-10 items-center justify-center rounded-input bg-violet-soft text-violet-text"
+            ><app-icon name="book" [size]="20"
+          /></span>
+        </div>
+        <p class="font-display text-number text-fg">{{ formatNumber(s.words.total) }}</p>
+        @if (newThisWeek() !== null) {
+          <p class="flex items-center gap-1.5 text-caption text-fg-secondary">
+            <span class="rounded-xs bg-mint-soft px-1 text-mint-text">↑</span> +{{
+              newThisWeek()
+            }}
+            shu hafta
+          </p>
+        }
+      </div>
+      <div class="flex flex-col gap-3 rounded-2xl border-2 border-line bg-surface px-6 py-5.5">
+        <div class="flex items-start justify-between">
+          <p class="text-body font-semibold text-fg-secondary">O'zlashtirilgan</p>
+          <span
+            class="flex size-10 items-center justify-center rounded-input bg-mint-soft text-mint-text"
+            ><app-icon name="check" [size]="20"
+          /></span>
+        </div>
+        <p class="font-display text-number text-fg">{{ formatNumber(s.words.mastered) }}</p>
+        <p class="text-caption text-fg-secondary">{{ s.words.learning }} ta o'rganilmoqda</p>
+      </div>
+      <div class="flex flex-col gap-3 rounded-2xl border-2 border-line bg-surface px-6 py-5.5">
+        <div class="flex items-start justify-between">
+          <p class="text-body font-semibold text-fg-secondary">Aniqlik</p>
+          <span
+            class="flex size-10 items-center justify-center rounded-input bg-yellow-soft text-yellow-text"
+            ><app-icon name="target" [size]="20"
+          /></span>
+        </div>
+        <p class="font-display text-number text-fg">
+          {{ accuracy() !== null ? accuracy() + '%' : '—' }}
+        </p>
+        <p class="text-caption text-fg-secondary">so'nggi mashg'ulotlar bo'yicha</p>
+      </div>
+      <div class="flex flex-col gap-3 rounded-2xl border-2 border-line bg-surface px-6 py-5.5">
+        <div class="flex items-start justify-between">
+          <p class="text-body font-semibold text-fg-secondary">O'rtacha vaqt</p>
+          <span
+            class="flex size-10 items-center justify-center rounded-input bg-coral-soft text-coral-text"
+            ><app-icon name="clock" [size]="20"
+          /></span>
+        </div>
+        <p class="font-display text-number text-fg">{{ avgMinutes() ?? '—' }} daq</p>
+        <p class="text-caption text-fg-secondary">kuniga</p>
+      </div>
+    } @else {
+      <div class="col-span-full rounded-2xl border-2 border-line bg-surface">
+        <app-error-state (retry)="stats.reload()" />
+      </div>
+    }
+  </div>
+
+  <!-- 3-qator: faollik + takrorlash navbati -->
+  <div class="grid gap-5 xl:grid-cols-[1fr_380px]">
+    <section
+      class="rounded-2xl border-2 border-line bg-surface px-6 py-5.5"
+      aria-labelledby="activity-title"
+    >
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 id="activity-title" class="font-display text-h3 text-fg">
+          {{ period() === 'week' ? 'Haftalik' : period() === 'month' ? 'Oylik' : 'Yillik' }} faollik
+        </h2>
+        <div class="flex gap-1 rounded-lg bg-muted p-1" role="radiogroup" aria-label="Davr">
+          @for (
+            p of [
+              { id: 'week', label: 'Hafta' },
+              { id: 'month', label: 'Oy' },
+              { id: 'year', label: 'Yil' },
+            ];
+            track p.id
+          ) {
+            <button
+              type="button"
+              role="radio"
+              [attr.aria-checked]="period() === p.id"
+              class="h-8 rounded-md px-3 text-label transition-colors"
+              [class]="
+                period() === p.id
+                  ? 'bg-surface text-fg shadow-hard-sm shadow-line'
+                  : 'text-fg-secondary hover:text-fg'
+              "
+              (click)="period.set($any(p.id))"
+            >
+              {{ p.label }}
+            </button>
+          }
+        </div>
+      </div>
+      @if (activity.isLoading()) {
+        <app-skeleton class="h-56" />
+      } @else if (activity.error()) {
+        <app-error-state (retry)="activity.reload()" />
+      } @else {
+        <app-grouped-bar-chart
+          [series]="series"
+          [groups]="chartGroups()"
+          caption="Faollik: yangi so'zlar va takrorlashlar"
+        />
+      }
+    </section>
+
+    <section
+      class="flex flex-col rounded-2xl border-2 border-line bg-surface px-6 py-5.5"
+      aria-labelledby="queue-title"
+    >
+      <div class="mb-4 flex items-center justify-between">
+        <h2 id="queue-title" class="font-display text-h3 text-fg">Takrorlash navbati</h2>
+        <a
+          routerLink="/my-words"
+          [queryParams]="{ due: true }"
+          class="inline-flex items-center gap-1 text-body-strong text-violet-text hover:underline"
+        >
+          Hammasi <app-icon name="chevron-right" [size]="16" />
+        </a>
+      </div>
+      @if (queue.isLoading()) {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <app-skeleton class="mb-3 h-12" />
+        }
+      } @else if (queue.hasValue() ? queue.value() : null; as q) {
+        <ul class="flex flex-col gap-4">
+          @for (item of q.items; track item.wordId) {
+            <li>
+              <a [routerLink]="['/words', item.wordId]" class="flex items-center gap-3">
+                <app-avatar [name]="item.text" [size]="40" />
+                <span class="flex min-w-0 flex-1 flex-col">
+                  <span class="truncate text-body-strong text-fg">{{ item.text }}</span>
+                  <span class="truncate text-caption text-fg-muted">{{
+                    item.translations[0] || '—'
+                  }}</span>
+                </span>
+                <span
+                  class="inline-flex shrink-0 items-center gap-1 rounded-md bg-page px-2 py-1 text-caption text-fg-secondary"
+                >
+                  @if (item.isNew) {
+                    Yangi
+                  } @else {
+                    <app-icon name="clock" [size]="12" /> {{ formatNextReview(item.nextReviewAt) }}
+                  }
+                </span>
+              </a>
+            </li>
+          } @empty {
+            <li>
+              <app-empty-state
+                icon="check"
+                title="Navbat bo'sh"
+                text="Hozircha takrorlanadigan so'z yo'q."
+              />
+            </li>
+          }
+        </ul>
+      } @else {
+        <app-error-state (retry)="queue.reload()" />
+      }
+    </section>
+  </div>
+
+  <!-- 4-qator: to'plamlar + do'stlar reytingi -->
+  <div class="grid gap-5 xl:grid-cols-[1fr_380px]">
+    <section
+      class="rounded-2xl border-2 border-line bg-surface px-6 py-5.5"
+      aria-labelledby="decks-title"
+    >
+      <div class="mb-4 flex items-center justify-between">
+        <h2 id="decks-title" class="font-display text-h3 text-fg">Davom etayotgan to'plamlar</h2>
+        <a
+          routerLink="/decks"
+          class="inline-flex items-center gap-1 text-body-strong text-violet-text hover:underline"
+        >
+          Barcha to'plamlar <app-icon name="chevron-right" [size]="16" />
+        </a>
+      </div>
+      @if (decks.isLoading()) {
+        @for (i of [1, 2, 3]; track i) {
+          <app-skeleton class="mb-3 h-20 rounded-card" />
+        }
+      } @else if (decks.error()) {
+        <app-error-state (retry)="decks.reload()" />
+      } @else {
+        <ul class="flex flex-col gap-3">
+          @for (deck of decks.value(); track deck.id; let i = $index) {
+            <li class="flex items-center gap-4 rounded-[18px] bg-page py-3 pr-4 pl-3">
+              <span
+                class="flex size-14 shrink-0 items-center justify-center rounded-input font-display text-h2"
+                [class]="deckColors[i % deckColors.length]"
+                aria-hidden="true"
+                >{{ initial(deck.title) }}</span
+              >
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <div class="flex items-center gap-2">
+                  <a
+                    [routerLink]="['/decks', deck.id]"
+                    class="truncate text-body-strong text-fg hover:text-violet-text"
+                    >{{ deck.title }}</a
+                  >
+                  @if (deck.cefrLevel) {
+                    <app-tag>{{ deck.cefrLevel.toUpperCase() }}</app-tag>
+                  }
+                </div>
+                <div class="flex items-center gap-3">
+                  <app-progress-bar
+                    class="flex-1"
+                    [value]="deck.progress"
+                    color="mint"
+                    [label]="deck.title + ' progressi'"
+                  />
+                  <span class="shrink-0 text-caption text-fg-secondary"
+                    >{{ Math.round((deck.progress * deck.wordsCount) / 100) }} /
+                    {{ deck.wordsCount }} so'z</span
+                  >
+                </div>
+              </div>
+              <a
+                appButton
+                [routerLink]="['/decks', deck.id]"
+                variant="soft"
+                size="s"
+                class="hidden sm:inline-flex"
+                >Davom etish</a
+              >
+            </li>
+          } @empty {
+            <li>
+              <app-empty-state
+                icon="layers"
+                title="Hali to'plam boshlanmagan"
+                text="Darajangizga mos to'plamni tanlang."
+              >
+                <a appButton routerLink="/decks" size="s" icon="arrow-right">To'plamlar</a>
+              </app-empty-state>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="rounded-2xl bg-ink px-6 py-5.5 text-fg-inverse" aria-labelledby="leaders-title">
+      <div class="mb-4 flex items-center justify-between">
+        <h2 id="leaders-title" class="font-display text-h3">Do'stlar reytingi</h2>
+        <span class="text-caption text-line-strong">Shu hafta</span>
+      </div>
+      @if (leaders.isLoading()) {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <app-skeleton class="mb-3 h-14 rounded-card !bg-fg-inverse/10" />
+        }
+      } @else if (leaders.error()) {
+        <p class="py-8 text-center text-body text-line-strong">Reytingni yuklab bo'lmadi.</p>
+      } @else {
+        <ol class="flex flex-col gap-4">
+          @for (l of leaders.value(); track l.userId) {
+            <li
+              class="flex h-13 items-center gap-3 rounded-input pr-3 pl-2.5"
+              [class]="l.isMe ? 'bg-fg-inverse/10' : ''"
+              [attr.aria-current]="l.isMe ? 'true' : null"
+            >
+              <span
+                class="w-2.5 text-body-strong"
+                [class]="l.rank === 1 ? 'text-yellow' : 'text-line-strong'"
+                >{{ l.rank }}</span
+              >
+              <app-avatar [name]="l.displayName || l.username" [src]="l.avatarUrl" [size]="36" />
+              <span class="flex-1 truncate text-body-strong">{{
+                l.isMe ? 'Siz' : l.displayName || l.username
+              }}</span>
+              <span class="text-body-strong text-yellow">{{ formatNumber(l.xp) }} XP</span>
+            </li>
+          } @empty {
+            <li class="py-6 text-center text-body text-line-strong">
+              Do'stlaringizni qo'shing va birga musobaqalashing.
+              <a
+                routerLink="/friends"
+                class="mt-3 block text-body-strong text-yellow hover:underline"
+                >Do'st qo'shish</a
+              >
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  </div>
+</div>
+
+<!-- Daraja navbat olinganda tugatilgan bo'lsa: tabrik oynasi -->
+@if (levelUp(); as lu) {
+  <app-level-up-celebration [levelUp]="lu" (closed)="closeLevelUp()" />
+}
