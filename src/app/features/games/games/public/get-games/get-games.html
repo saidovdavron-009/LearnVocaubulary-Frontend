@@ -201,7 +201,7 @@
 <!-- Do'stni tanlash -->
 <app-modal
   [(open)]="friendsOpen"
-  [title]="friendGame() === 'pairs' ? 'Juftini top: do‘stni chaqirish' : friendGame() === 'listen' ? 'Eshit va tanla: do‘stni chaqirish' : 'Do‘stni duelga chaqirish'"
+  [title]="friendGame() === 'pairs' ? 'Juftini top: do‘stni chaqirish' : friendGame() === 'listen' ? 'Eshit va tanla: do‘stni chaqirish' : friendGame() === 'scramble' ? 'Harflarni tartibla: do‘stni chaqirish' : 'Do‘stni duelga chaqirish'"
   description="Do'stingiz bildirishnoma oladi va 2 daqiqa ichida qabul qilishi mumkin."
 >
   <label class="flex h-11 items-center gap-2 rounded-input border-2 border-line bg-surface px-3 focus-within:border-violet">

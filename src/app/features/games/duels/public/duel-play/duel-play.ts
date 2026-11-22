@@ -160,6 +160,64 @@ interface Reveal {
                   <span class="mr-1 ml-4 inline-block size-3 rounded-sm bg-coral align-middle"></span> raqib topgan
                 </p>
               </section>
+            } @else if (d.game === 'scramble' && d.question; as sq) {
+              <!-- Harflarni tartibla 1v1 -->
+              <section class="flex w-full max-w-160 flex-col items-center gap-6" aria-live="polite">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-violet-soft py-1.5 pr-3.5 pl-3 text-label text-violet-text">
+                  So'z {{ sq.index + 1 }} / {{ d.questionCount }}
+                </span>
+                <div class="flex flex-col items-center gap-1 text-center">
+                  <p class="text-label text-fg-muted">Tarjimasi</p>
+                  <h1 class="font-display text-h2 text-fg [overflow-wrap:anywhere] sm:text-h1">{{ sq.text }}</h1>
+                </div>
+                <div class="flex flex-wrap justify-center gap-1.5 sm:gap-2" [class.shake]="scrambleWrong()">
+                  @for (slot of scrambleSlots(); track $index) {
+                    <button
+                      type="button"
+                      class="flex size-10 items-center justify-center rounded-lg border-2 font-display text-h3 uppercase transition-colors sm:size-13"
+                      [class]="
+                        scrambleOk()
+                          ? 'border-mint bg-mint-soft text-mint-text'
+                          : scrambleWrong()
+                            ? 'border-coral-strong bg-coral-soft text-coral-text'
+                            : slot !== null
+                              ? 'border-violet bg-violet-soft text-fg'
+                              : 'border-dashed border-line-strong bg-surface'
+                      "
+                      [disabled]="slot === null || answering()"
+                      (click)="unpickLetter($index)"
+                    >
+                      {{ slot !== null ? sq.options[slot] : '' }}
+                    </button>
+                  }
+                </div>
+                <div class="flex flex-wrap justify-center gap-2 sm:gap-3">
+                  @for (letter of sq.options; track $index) {
+                    <button
+                      type="button"
+                      class="flex size-12 items-center justify-center rounded-card border-2 font-display text-h3 uppercase shadow-hard transition-[translate,box-shadow,opacity] duration-150 sm:size-14"
+                      [class]="
+                        picked().includes($index)
+                          ? 'border-line bg-muted text-transparent shadow-line opacity-40'
+                          : 'border-violet-deep bg-violet text-fg-inverse shadow-violet-deep hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-hard-sm'
+                      "
+                      [disabled]="picked().includes($index) || answering()"
+                      (click)="pickLetter($index)"
+                    >
+                      {{ letter }}
+                    </button>
+                  }
+                </div>
+                <div class="h-7">
+                  @if (scrambleOk(); as pts) {
+                    <span class="pop-in text-body-strong text-mint-text">+{{ pts }} ball</span>
+                  }
+                </div>
+                <div class="grid w-full max-w-100 grid-cols-2 gap-3">
+                  <button appButton type="button" variant="secondary" size="m" icon="x" [block]="true" class="min-w-0" [disabled]="!picked().length || answering()" (click)="picked.set([])">Tozalash</button>
+                  <button appButton type="button" variant="soft" size="m" icon="arrow-right" [block]="true" class="min-w-0" [disabled]="answering()" (click)="skipWord()">O'tkazish</button>
+                </div>
+              </section>
             } @else if (shownQuestion(); as q) {
               <section class="flex w-full max-w-190 flex-col items-center gap-7" aria-live="polite">
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-violet-soft py-1.5 pr-3.5 pl-3 text-label text-violet-text">
@@ -318,6 +376,16 @@ export class DuelPlay implements OnInit {
   protected readonly duel = signal<DuelState | null>(null);
   protected readonly notFound = signal(false);
   protected readonly answering = signal(false);
+  /** Scramble: tanlangan harflar (sq.options indekslari), noto'g'ri urinish va to'g'ri javob bali. */
+  protected readonly picked = signal<number[]>([]);
+  protected readonly scrambleWrong = signal(false);
+  protected readonly scrambleOk = signal<number | null>(null);
+  private scrambleIndex = -1;
+  protected readonly scrambleSlots = computed(() => {
+    const q = this.duel()?.question;
+    if (!q) return [];
+    return q.options.map((_, i) => this.picked()[i] ?? null);
+  });
   protected readonly reveal = signal<Reveal | null>(null);
   protected readonly flipping = signal(false);
   /** Brauzer soati — har 200ms yangilanadi (taymer va sanoq uchun). */
@@ -398,6 +466,11 @@ export class DuelPlay implements OnInit {
   private apply(state: DuelState): void {
     this.clockOffset = new Date(state.serverTime).getTime() - Date.now();
     this.duel.set(state);
+    // Yangi so'z — tanlangan harflar tozalanadi.
+    if (state.question && state.question.index !== this.scrambleIndex) {
+      this.scrambleIndex = state.question.index;
+      this.picked.set([]);
+    }
     if (state.phase === 'finished' && state.xpEarned !== null) {
       this.poll?.unsubscribe();
       if (!this.resultsRefreshed) {
@@ -424,6 +497,53 @@ export class DuelPlay implements OnInit {
         } else {
           this.apply(r.state);
         }
+      },
+      error: () => this.answering.set(false),
+    });
+  }
+
+  protected pickLetter(i: number): void {
+    const q = this.duel()?.question;
+    if (!q || this.answering() || this.picked().includes(i)) return;
+    this.picked.update((list) => [...list, i]);
+    if (this.picked().length === q.options.length) this.sendScramble(this.picked().map((k) => q.options[k]).join(''), false);
+  }
+
+  protected unpickLetter(slot: number): void {
+    if (this.answering()) return;
+    this.picked.update((list) => list.filter((_, j) => j !== slot));
+  }
+
+  protected skipWord(): void {
+    this.sendScramble('', true);
+  }
+
+  private sendScramble(text: string, skip: boolean): void {
+    const d = this.duel();
+    const q = d?.question;
+    if (!d || !q || d.phase !== 'playing' || this.answering()) return;
+    this.answering.set(true);
+    this.service.scrambleAnswer(d.id, q.index, text, skip).subscribe({
+      next: (r) => {
+        if (r.accepted && r.isCorrect) {
+          this.scrambleOk.set(r.points);
+          this.revealTimer = setTimeout(() => {
+            this.scrambleOk.set(null);
+            this.answering.set(false);
+            this.apply(r.state);
+          }, REVEAL_MS);
+          return;
+        }
+        this.answering.set(false);
+        if (r.accepted && !skip) {
+          // Noto'g'ri so'z — silkinadi va tozalanadi, shu so'zda qolamiz.
+          this.scrambleWrong.set(true);
+          setTimeout(() => {
+            this.scrambleWrong.set(false);
+            this.picked.set([]);
+          }, 500);
+        }
+        this.apply(r.state);
       },
       error: () => this.answering.set(false),
     });
@@ -489,8 +609,28 @@ export class DuelPlay implements OnInit {
   }
 
   protected onKeydown(event: KeyboardEvent): void {
+    const d = this.duel();
+    if (d?.game === 'scramble') {
+      this.scrambleKey(event);
+      return;
+    }
     if (!/^[1-4]$/.test(event.key)) return;
     this.choose(Number(event.key) - 1);
+  }
+
+  /** Scramble: klaviaturadan harf yozish, Backspace — oxirgisini qaytarish. */
+  private scrambleKey(event: KeyboardEvent): void {
+    const q = this.duel()?.question;
+    if (!q || this.answering() || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      this.picked.update((list) => list.slice(0, -1));
+      return;
+    }
+    const key = event.key.toLowerCase();
+    if (!/^[a-z]$/.test(key)) return;
+    const i = q.options.findIndex((l, k) => l === key && !this.picked().includes(k));
+    if (i >= 0) this.pickLetter(i);
   }
 
   protected async exit(): Promise<void> {

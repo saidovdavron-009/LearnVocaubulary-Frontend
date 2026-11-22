@@ -73,22 +73,10 @@ export const GAMES_STANDALONE_ROUTES: Routes = [
     loadComponent: () => import('./games/public/balloon-pop/balloon-pop').then((m) => m.BalloonPop),
   },
   {
-    path: 'games/categories',
-    title: "Toifaga ajrat — So'zchi",
-    canActivate: [authGuard],
-    loadComponent: () => import('./games/public/categories/categories').then((m) => m.Categories),
-  },
-  {
     path: 'games/word-chain',
     title: "So'z zanjiri — So'zchi",
     canActivate: [authGuard],
     loadComponent: () => import('./games/public/word-chain/word-chain').then((m) => m.WordChain),
-  },
-  {
-    path: 'games/picture-match',
-    title: "Rasm va so'z — So'zchi",
-    canActivate: [authGuard],
-    loadComponent: () => import('./games/public/picture-match/picture-match').then((m) => m.PictureMatch),
   },
   {
     // ?mode=random | bot, yoki ?invite=<id> (do'st qabul qilishini kutish)

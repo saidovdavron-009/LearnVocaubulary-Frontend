@@ -18,14 +18,13 @@ export type GameType =
   | 'true_false'
   | 'falling_words'
   | 'balloon_pop'
-  | 'categories'
   | 'word_chain'
-  | 'picture_match'
-  | 'listen_duel';
+  | 'listen_duel'
+  | 'scramble_duel';
 /** Natijasi frontenddan yuboriladigan yakka o'yinlar. */
-export type SoloGameType = Exclude<GameType, 'duel' | 'pairs_duel' | 'listen_duel'>;
+export type SoloGameType = Exclude<GameType, 'duel' | 'pairs_duel' | 'listen_duel' | 'scramble_duel'>;
 /** Duel turi: quiz — So'z dueli, pairs — Juftini top (navbatma-navbat). */
-export type DuelGame = 'quiz' | 'pairs' | 'listen';
+export type DuelGame = 'quiz' | 'pairs' | 'listen' | 'scramble';
 export type GameOutcome = 'win' | 'loss' | 'draw';
 
 /** Swagger: GetGamesSummaryResponse */
@@ -255,6 +254,15 @@ export class GamesService {
 
   answer(id: string, questionIndex: number, optionIndex: number): Observable<DuelAnswer> {
     return this.http.post<DuelAnswer>(apiUrl(`/games/duels/${id}/answers`), { questionIndex, optionIndex }, { context: this.quiet });
+  }
+
+  /** Scramble dueli: tuzilgan so'z yoki o'tkazib yuborish. Noto'g'ri so'z — isCorrect false, savol o'zgarmaydi. */
+  scrambleAnswer(id: string, questionIndex: number, text: string, skip = false): Observable<DuelAnswer> {
+    return this.http.post<DuelAnswer>(
+      apiUrl(`/games/duels/${id}/answers`),
+      { questionIndex, optionIndex: 0, text, skip },
+      { context: this.quiet },
+    );
   }
 
   flip(id: string, cardIndex: number): Observable<{ result: 'not_your_turn' | 'invalid' | 'opened' | 'matched' | 'mismatched'; state: DuelState }> {

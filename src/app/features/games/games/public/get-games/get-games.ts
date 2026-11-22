@@ -144,17 +144,20 @@ const GAMES: GameInfo[] = [
   {
     id: 'scramble',
     title: 'Harflarni tartibla',
-    badge: "Yakka · so'z tuzish",
-    online: false,
+    badge: "Yakka / 1v1 · so'z tuzish",
+    online: true,
     text: "Aralashib ketgan harflardan inglizcha so'zni tuzing: L P P A E → APPLE. Tarjimasi maslahat sifatida beriladi.",
     icon: 'refresh',
     stats: 'scramble',
     hero: 'bg-coral-text',
     card: 'bg-coral-soft',
     iconBox: 'bg-coral-strong text-fg-inverse',
-    tags: ['Yakka', 'Imlo'],
+    tags: ['Yakka', '1v1', 'Imlo'],
     actions: [
       { label: "O'ynash", icon: 'play', variant: 'yellow', link: '/games/scramble' },
+      { label: 'Onlayn raqib', icon: 'search', variant: 'primary', link: '/games/duel', query: { mode: 'random', game: 'scramble' } },
+      { label: "Do'st bilan", icon: 'send', variant: 'secondary', friends: 'scramble' },
+      { label: 'Bot bilan', icon: 'users', variant: 'secondary', link: '/games/duel', query: { mode: 'bot', game: 'scramble' } },
     ],
   },
   {
@@ -238,22 +241,6 @@ const GAMES: GameInfo[] = [
     ],
   },
   {
-    id: 'categories',
-    title: 'Toifaga ajrat',
-    badge: 'Yakka · mantiq',
-    online: false,
-    text: "So'zlarni qutilarga joylang: 🍎 meva, 🐶 hayvon, 👕 kiyim va boshqalar. Bosib yoki sudrab tashlang.",
-    icon: 'layers',
-    stats: 'categories',
-    hero: 'bg-mint-text',
-    card: 'bg-mint-soft',
-    iconBox: 'bg-mint text-fg-inverse',
-    tags: ['Yakka', 'Mantiq'],
-    actions: [
-      { label: "O'ynash", icon: 'play', variant: 'yellow', link: '/games/categories' },
-    ],
-  },
-  {
     id: 'word-chain',
     title: "So'z zanjiri",
     badge: 'Botga qarshi',
@@ -267,22 +254,6 @@ const GAMES: GameInfo[] = [
     tags: ['Bot bilan', "So'z boyligi"],
     actions: [
       { label: "O'ynash", icon: 'play', variant: 'yellow', link: '/games/word-chain' },
-    ],
-  },
-  {
-    id: 'picture-match',
-    title: "Rasm va so'z",
-    badge: "Yakka · boshlang'ich",
-    online: false,
-    text: "Rasm ko'rsatiladi — uning inglizcha nomini tanlang. Boshlang'ich daraja uchun juda samarali.",
-    icon: 'eye',
-    stats: 'picture_match',
-    hero: 'bg-blue-text',
-    card: 'bg-yellow-soft',
-    iconBox: 'bg-yellow text-fg',
-    tags: ['Yakka', 'Rasm'],
-    actions: [
-      { label: "O'ynash", icon: 'play', variant: 'yellow', link: '/games/picture-match' },
     ],
   },
 ];
@@ -385,6 +356,7 @@ export class GetGames {
   protected gameName(game: DuelGame): string {
     if (game === 'pairs') return '"Juftini top" o‘yiniga';
     if (game === 'listen') return '"Eshit va tanla" o‘yiniga';
+    if (game === 'scramble') return '"Harflarni tartibla" o‘yiniga';
     return 'So‘z dueliga';
   }
 

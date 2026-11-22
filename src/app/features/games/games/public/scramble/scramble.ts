@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Button } from '../../../../../shared/ui/button/button';
 import { Icon } from '../../../../../shared/ui/icon/icon';
 import { GameWord, shuffle } from '../../../games.service';
@@ -22,7 +23,7 @@ interface Tile {
  */
 @Component({
   selector: 'app-scramble',
-  imports: [Button, Icon, GameFrame, GameIntro, GameResult],
+  imports: [Button, Icon, GameFrame, GameIntro, GameResult, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block', '(document:keydown)': 'onKey($event)' },
   template: `
@@ -45,7 +46,9 @@ interface Tile {
             iconClass="bg-coral-strong text-fg-inverse"
             [rules]="rules"
             (start)="start()"
-          />
+          >
+            <a appButton routerLink="/games/duel" [queryParams]="{ mode: 'random', game: 'scramble' }" variant="secondary" size="m" icon="users" [block]="true">1v1 onlayn o'ynash</a>
+          </app-game-intro>
         }
         @case ('playing') {
           @if (current(); as w) {

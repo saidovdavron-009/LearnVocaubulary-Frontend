@@ -110,10 +110,10 @@ export class DuelLobby implements OnInit {
   readonly gameParam = input<string>(undefined, { alias: 'game' });
   protected readonly game = computed<DuelGame>(() => {
     const g = this.gameParam();
-    return g === 'pairs' || g === 'listen' ? g : 'quiz';
+    return g === 'pairs' || g === 'listen' || g === 'scramble' ? g : 'quiz';
   });
   protected readonly gameTitle = computed(() =>
-    this.game() === 'pairs' ? 'Juftini top · 1v1' : this.game() === 'listen' ? 'Eshit va tanla · 1v1' : "So'z dueli",
+    ({ pairs: 'Juftini top · 1v1', listen: 'Eshit va tanla · 1v1', scramble: 'Harflarni tartibla · 1v1', quiz: "So'z dueli" })[this.game()],
   );
   /** Do'stga yuborilgan chaqiruv id'si. */
   readonly inviteId = input<string>(undefined, { alias: 'invite' });
