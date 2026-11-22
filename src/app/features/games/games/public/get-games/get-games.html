@@ -1,0 +1,249 @@
+<div class="flex flex-col gap-6">
+  <!-- Kelgan duel chaqiruvlari -->
+  @for (inv of invites(); track inv.id) {
+    <section
+      class="fade-in flex flex-col gap-4 rounded-2xl border-2 border-mint bg-mint-soft px-5 py-4 sm:flex-row sm:items-center"
+      role="alert"
+      [attr.aria-label]="inv.fromName + ' sizni o‘yinga chaqirdi'"
+    >
+      <app-avatar [name]="inv.fromName" [src]="inv.fromAvatarUrl" [size]="48" />
+      <div class="flex min-w-0 flex-1 flex-col">
+        <p class="text-body-strong text-fg">{{ inv.fromName }} sizni {{ gameName(inv.game) }} chaqirdi!</p>
+        <p class="text-label text-mint-text">{{ inv.fromLevel }}-daraja · {{ secondsLeft(inv) }} soniya ichida javob bering</p>
+      </div>
+      <div class="flex gap-2">
+        <button appButton type="button" size="s" icon="arrow-right" [loading]="busyInvite() === inv.id" (click)="accept(inv)">
+          Qabul qilish
+        </button>
+        <button appButton type="button" size="s" variant="secondary" [disabled]="busyInvite() === inv.id" (click)="decline(inv)">
+          Rad etish
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- Banner: o'yinlar har 10 soniyada almashadi (sichqoncha ustida — to'xtaydi) -->
+  <section
+    class="relative overflow-hidden rounded-3xl text-fg-inverse transition-colors duration-500"
+    [class]="games[slide()].hero"
+    aria-roledescription="karusel"
+    aria-label="O'yinlar"
+    (mouseenter)="hovered.set(true)"
+    (mouseleave)="hovered.set(false)"
+    (focusin)="focused.set(true)"
+    (focusout)="onFocusOut($event)"
+  >
+    <div class="pointer-events-none absolute -top-16 -right-10 size-64 rounded-full bg-violet/40 blur-2xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -bottom-20 left-1/3 size-56 rounded-full bg-mint/20 blur-2xl" aria-hidden="true"></div>
+
+    <!-- Hamma slaydlar bitta katakda ustma-ust: balandlik eng balandiga teng, almashganda sakramaydi -->
+    <div class="relative grid px-6 pt-7 pb-14 md:px-9 md:pt-8">
+      @for (g of games; track g.id; let i = $index) {
+        @let active = i === slide();
+        @let s = stats(g.stats);
+        <div
+          class="flex flex-col gap-6 transition-[opacity,translate] duration-500 [grid-area:1/1] lg:flex-row lg:items-center"
+          [class]="active ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-6 opacity-0'"
+          role="group"
+          aria-roledescription="slayd"
+          [attr.aria-label]="i + 1 + ' / ' + games.length + ': ' + g.title"
+          [attr.aria-hidden]="!active"
+          [attr.inert]="active ? null : ''"
+        >
+          <div class="flex flex-1 flex-col gap-3">
+            <span class="inline-flex w-fit items-center gap-1.5 rounded-full bg-fg-inverse/10 py-1.5 pr-3.5 pl-3 text-label">
+              @if (g.online) {
+                <span class="size-2 animate-pulse rounded-full bg-mint" aria-hidden="true"></span>
+              } @else {
+                <app-icon [name]="g.icon" [size]="14" />
+              }
+              {{ g.badge }}
+            </span>
+            <h2 class="font-display text-h1">{{ g.title }}</h2>
+            <p class="max-w-130 text-body-lg text-fg-inverse/80">{{ g.text }}</p>
+            @if (s?.played) {
+              <div class="flex flex-wrap gap-2 pt-1">
+                @if (g.online) {
+                  <span class="rounded-lg bg-fg-inverse/10 px-3 py-1.5 text-label">🏆 {{ s!.wins }} g'alaba</span>
+                  <span class="rounded-lg bg-fg-inverse/10 px-3 py-1.5 text-label">{{ s!.losses }} mag'lubiyat</span>
+                  <span class="rounded-lg bg-fg-inverse/10 px-3 py-1.5 text-label">{{ s!.draws }} durang</span>
+                } @else {
+                  <span class="rounded-lg bg-fg-inverse/10 px-3 py-1.5 text-label">{{ s!.played }} marta o'ynalgan</span>
+                }
+                @if (s!.bestScore) {
+                  <span class="rounded-lg bg-yellow/20 px-3 py-1.5 text-label text-yellow">Rekord: {{ formatNumber(s!.bestScore) }}</span>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="flex flex-col gap-3 lg:w-80">
+            @for (a of g.actions; track a.label; let first = $first) {
+              @if (a.friends) {
+                <button appButton type="button" [variant]="a.variant" [size]="first ? 'l' : 'm'" [icon]="a.icon ?? null" [block]="true" (click)="openFriends(a.friends)">
+                  {{ a.label }}
+                </button>
+              } @else {
+                <a appButton [routerLink]="a.link" [queryParams]="a.query ?? null" [variant]="a.variant" [size]="first ? 'l' : 'm'" [icon]="a.icon ?? null" [block]="true">
+                  {{ a.label }}
+                </a>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Boshqaruv: oldingi/keyingi va nuqtalar -->
+    <div class="absolute inset-x-0 bottom-4 flex items-center justify-center gap-3">
+      <button type="button" class="flex size-7 items-center justify-center rounded-full bg-fg-inverse/10 hover:bg-fg-inverse/20" aria-label="Oldingi o'yin" (click)="goTo(slide() - 1)">
+        <app-icon name="chevron-left" [size]="16" />
+      </button>
+      @for (g of games; track g.id; let i = $index) {
+        <button
+          type="button"
+          class="h-2 rounded-full transition-[width,background-color] duration-300"
+          [class]="i === slide() ? 'w-6 bg-yellow' : 'w-2 bg-fg-inverse/40 hover:bg-fg-inverse/70'"
+          [attr.aria-label]="g.title"
+          [attr.aria-current]="i === slide()"
+          (click)="goTo(i)"
+        ></button>
+      }
+      <button type="button" class="flex size-7 items-center justify-center rounded-full bg-fg-inverse/10 hover:bg-fg-inverse/20" aria-label="Keyingi o'yin" (click)="goTo(slide() + 1)">
+        <app-icon name="chevron-right" [size]="16" />
+      </button>
+    </div>
+  </section>
+
+  <!-- Barcha o'yinlar -->
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <h2 class="font-display text-h3 text-fg">Barcha o'yinlar</h2>
+    @if (dailyXp(); as x) {
+      <div class="flex min-w-48 flex-col gap-1.5" [attr.aria-label]="'Bugun o‘yinlardan ' + x.today + ' / ' + x.cap + ' XP'">
+        <span class="text-right text-caption text-fg-secondary">Bugungi o'yin XP: {{ x.today }} / {{ x.cap }}</span>
+        <div class="h-2 overflow-hidden rounded-full bg-muted">
+          <div class="h-full rounded-full bg-yellow transition-[width]" [style.width.%]="x.pct"></div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="grid gap-5 md:grid-cols-2">
+    @for (g of games; track g.id) {
+      <article
+        class="flex flex-col gap-4 rounded-2xl border-2 border-line p-6 transition-[translate,box-shadow] hover:-translate-y-0.5 hover:shadow-card"
+        [class]="g.card"
+      >
+        <div class="flex items-start gap-4">
+          <span class="flex size-14 shrink-0 items-center justify-center rounded-input" [class]="g.iconBox" aria-hidden="true">
+            <app-icon [name]="g.icon" [size]="28" />
+          </span>
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <h3 class="font-display text-h3 text-fg">{{ g.title }}</h3>
+            <div class="flex flex-wrap gap-1.5">
+              @for (t of g.tags; track t) {
+                <span class="rounded-sm bg-surface/70 px-2 py-0.5 text-caption text-fg-secondary">{{ t }}</span>
+              }
+            </div>
+          </div>
+        </div>
+        <p class="flex-1 text-body text-fg-secondary">{{ g.text }}</p>
+        @if (summary.isLoading()) {
+          <app-skeleton class="h-5 w-48" />
+        } @else {
+          <p class="inline-flex items-center gap-1.5 text-label text-fg-secondary">
+            <app-icon name="trophy" [size]="16" /> {{ statLine(g) }}
+          </p>
+        }
+        <div class="grid grid-cols-1 gap-2" [class.sm:grid-cols-3]="g.actions.length === 3">
+          @for (a of g.actions; track a.label; let first = $first) {
+            @if (a.friends) {
+              <button appButton type="button" size="s" [variant]="first ? 'primary' : 'soft'" [icon]="a.icon ?? null" [block]="true" class="min-w-0" (click)="openFriends(a.friends)">
+                {{ a.label }}
+              </button>
+            } @else {
+              <a
+                appButton
+                [routerLink]="a.link"
+                [queryParams]="a.query ?? null"
+                size="s"
+                [variant]="first ? 'primary' : a.variant === 'secondary' ? 'secondary' : 'soft'"
+                [icon]="a.icon ?? null"
+                [block]="true"
+                class="min-w-0"
+              >
+                {{ a.label }}
+              </a>
+            }
+          }
+        </div>
+      </article>
+    }
+  </div>
+
+  <!-- Qanday ishlaydi -->
+  <section class="grid gap-3 rounded-2xl border-2 border-line bg-surface p-6 sm:grid-cols-3" aria-label="O'yin qoidalari">
+    <div class="flex gap-3">
+      <app-icon name="bolt" [size]="22" class="text-yellow-text" />
+      <p class="text-body text-fg-secondary"><b class="text-fg">XP yig'ing.</b> O'yinlardagi natijalar umumiy XP va reytingga qo'shiladi.</p>
+    </div>
+    <div class="flex gap-3">
+      <app-icon name="flame" [size]="22" class="text-coral-strong" />
+      <p class="text-body text-fg-secondary"><b class="text-fg">Seriyani saqlang.</b> O'yin o'ynash ham kunlik faollik hisoblanadi.</p>
+    </div>
+    <div class="flex gap-3">
+      <app-icon name="book" [size]="22" class="text-violet-text" />
+      <p class="text-body text-fg-secondary"><b class="text-fg">Takrorlang.</b> Savollarning bir qismi siz o'rgangan so'zlardan olinadi.</p>
+    </div>
+  </section>
+</div>
+
+<!-- Do'stni tanlash -->
+<app-modal
+  [(open)]="friendsOpen"
+  [title]="friendGame() === 'pairs' ? 'Juftini top: do‘stni chaqirish' : friendGame() === 'listen' ? 'Eshit va tanla: do‘stni chaqirish' : 'Do‘stni duelga chaqirish'"
+  description="Do'stingiz bildirishnoma oladi va 2 daqiqa ichida qabul qilishi mumkin."
+>
+  <label class="flex h-11 items-center gap-2 rounded-input border-2 border-line bg-surface px-3 focus-within:border-violet">
+    <app-icon name="search" [size]="18" class="text-fg-muted" />
+    <span class="sr-only">Do'stni qidirish</span>
+    <input type="search" class="min-w-0 flex-1 bg-transparent text-body outline-none" placeholder="Ism yoki username..." (input)="onFriendSearch($event)" />
+  </label>
+  <div class="flex max-h-90 flex-col gap-1 overflow-y-auto">
+    @if (friends.isLoading()) {
+      @for (i of [1, 2, 3]; track i) {
+        <app-skeleton class="h-14" />
+      }
+    } @else if (!filteredFriends().length) {
+      <div class="flex flex-col items-center gap-3 py-8 text-center">
+        <p class="text-body text-fg-muted">
+          {{ friendSearch() ? "Bunday do'st topilmadi." : "Hali do'stlaringiz yo'q. Avval do'st qo'shing." }}
+        </p>
+        @if (!friendSearch()) {
+          <a appButton routerLink="/friends" size="s" variant="soft" icon="users" (click)="friendsOpen.set(false)">Do'st qo'shish</a>
+        }
+      </div>
+    } @else {
+      @for (f of filteredFriends(); track f.userId) {
+        <div class="flex items-center gap-3 rounded-input px-2 py-2 hover:bg-muted">
+          <app-avatar [name]="friendName(f)" [src]="f.avatarUrl" [size]="40" />
+          <div class="flex min-w-0 flex-1 flex-col">
+            <span class="truncate text-body-strong text-fg">{{ friendName(f) }}</span>
+            <span class="text-caption text-fg-muted">&#64;{{ f.username }} · {{ f.level }}-daraja</span>
+          </div>
+          <button
+            appButton
+            type="button"
+            size="s"
+            icon="send"
+            [loading]="invitingFriend() === f.userId"
+            [disabled]="invitingFriend() !== null && invitingFriend() !== f.userId"
+            (click)="inviteFriend(f)"
+          >
+            Chaqirish
+          </button>
+        </div>
+      }
+    }
+  </div>
+</app-modal>

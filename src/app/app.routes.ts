@@ -7,6 +7,7 @@ import { AuthLayout } from './core/layout/auth-layout';
 import { PublicLayout } from './core/layout/public-layout';
 import { COMMON_APP_ROUTES, COMMON_PUBLIC_ROUTES } from './features/common/common.routes';
 import { DECKS_APP_ROUTES } from './features/decks/decks.routes';
+import { GAMES_APP_ROUTES, GAMES_STANDALONE_ROUTES } from './features/games/games.routes';
 import { GAMIFICATION_APP_ROUTES } from './features/gamification/gamification.routes';
 import { SOCIAL_APP_ROUTES } from './features/social/social.routes';
 import { STUDY_APP_ROUTES, STUDY_STANDALONE_ROUTES } from './features/study/study.routes';
@@ -53,6 +54,7 @@ export const routes: Routes = [
   // Qobiqsiz sahifalar (parolni tiklash, email tasdiqlash, onboarding)
   ...USERS_STANDALONE_ROUTES,
   ...STUDY_STANDALONE_ROUTES,
+  ...GAMES_STANDALONE_ROUTES,
 
   // Ilova ichi — Sidebar + Topbar, faqat tizimga kirgan user.
   // Bolalar aniq yo'llarga ega (dashboard, settings, ...), shuning uchun "/" bu yerga tushmaydi.
@@ -60,7 +62,7 @@ export const routes: Routes = [
     path: '',
     component: AppLayout,
     canActivateChild: [authGuard],
-    children: [...COMMON_APP_ROUTES, ...WORDS_APP_ROUTES, ...DECKS_APP_ROUTES, ...STUDY_APP_ROUTES, ...GAMIFICATION_APP_ROUTES, ...SOCIAL_APP_ROUTES, ...USERS_APP_ROUTES],
+    children: [...COMMON_APP_ROUTES, ...WORDS_APP_ROUTES, ...DECKS_APP_ROUTES, ...STUDY_APP_ROUTES, ...GAMES_APP_ROUTES, ...GAMIFICATION_APP_ROUTES, ...SOCIAL_APP_ROUTES, ...USERS_APP_ROUTES],
   },
 
   { path: '**', redirectTo: '' },

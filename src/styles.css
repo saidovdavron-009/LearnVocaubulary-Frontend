@@ -188,6 +188,15 @@
   animation: toast-enter 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* O'yinlar: element "otilib" chiqishi va xato javobda silkinish */
+@utility pop-in {
+  animation: pop-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1.4);
+}
+
+@utility shake {
+  animation: shake 300ms ease-in-out;
+}
+
 /* Skeleton: yumshoq miltillash (yuklanish davomida takrorlanadi) */
 @utility skeleton {
   animation: skeleton-pulse 1.4s ease-in-out infinite;
@@ -225,6 +234,24 @@
 @keyframes slide-in-left {
   from {
     transform: translateX(-100%);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
   }
 }
 

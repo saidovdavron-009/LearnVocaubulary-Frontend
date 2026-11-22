@@ -36,6 +36,8 @@ const SESSION_SIZE = 30;
 const MAX_HEARTS = 5;
 /** Yozish mashqi uchun maxsus belgilar (Figma: "Klaviatura"). */
 const SPECIAL_KEYS = ['ə', 'ɪ', 'ʃ', 'θ'];
+/** Tinglash mashqida o'zbekcha tarjima yoziladi — o'zbekcha harflar tugmalari. */
+const UZ_KEYS = ["o'", "g'"];
 
 type Phase = 'loading' | 'empty' | 'error' | 'question' | 'feedback' | 'finishing';
 
@@ -70,7 +72,30 @@ function distance(a: string, b: string): number {
   return dp[b.length];
 }
 
-const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[’`]/g, "'");
+const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[’‘`ʻʼ]/g, "'");
+
+/**
+ * Tarjimaning qabul qilinadigan variantlari: to'liq matn hamda "/", ",", ";" bo'yicha bo'laklari,
+ * qavs ichidagi izohsiz ko'rinishi bilan. Masalan "kim bilandir janjallashmoq / tortishmoq" →
+ * "kim bilandir janjallashmoq/tortishmoq", "kim bilandir janjallashmoq", "tortishmoq".
+ */
+/** Kechiriladigan harf xatolari soni: qisqa so'zda 0, 4+ harfda 1, 9+ harfda 2. */
+const typoAllowance = (t: string) => (t.length >= 9 ? 2 : t.length >= 4 ? 1 : 0);
+
+const answerVariants = (translations: string[]): string[] => {
+  const out = new Set<string>();
+  const add = (v: string) => {
+    const n = normalize(v).replace(/\s*([/,;])\s*/g, '$1');
+    if (n) out.add(n);
+  };
+  for (const t of translations) {
+    for (const v of [t, t.replace(/\([^)]*\)/g, ' ')]) {
+      add(v);
+      v.split(/[/,;]/).forEach(add);
+    }
+  }
+  return [...out];
+};
 
 /**
  * Figma: 10 Mashq: Test, 11 Mashq: Tinglash va yozish.
@@ -95,7 +120,7 @@ export class StudySession implements OnInit {
   readonly mode = input<string | undefined>(undefined);
   readonly deckId = input<string | undefined>(undefined);
 
-  protected readonly specialKeys = SPECIAL_KEYS;
+  protected readonly specialKeys = computed(() => (this.current()?.exercise === 'listening' ? UZ_KEYS : SPECIAL_KEYS));
   protected readonly maxHearts = MAX_HEARTS;
   protected readonly formatNumber = formatNumber;
   protected readonly Math = Math;
@@ -198,10 +223,13 @@ export class StudySession implements OnInit {
     this.phase.set('error');
   }
 
-  /** Juft savollar — test (variantlar yetarli bo'lsa), toq — tinglab yozish (ovoz bo'lsa), aks holda yozish. */
+  /**
+   * Juft savollar — test (variantlar yetarli bo'lsa), toq — tinglab yozish
+   * (inglizcha so'z aytiladi, o'zbekcha tarjimasi yoziladi), aks holda yozish.
+   */
   private buildQuestion(item: StudyQueueItem, i: number): StudyQuestion {
     const canTest = item.translations.length > 0 && item.distractors.length >= 3;
-    const canListen = !!item.audioUrl || this.canSpeak;
+    const canListen = item.translations.length > 0 && (!!item.audioUrl || this.canSpeak);
     let exercise: StudyExercise = i % 2 === 0 && canTest ? 'multiple_choice' : canListen ? 'listening' : 'typing';
     if (exercise !== 'multiple_choice' && !item.translations.length && !canListen) exercise = 'multiple_choice';
     const options = canTest ? shuffle([item.translations[0], ...item.distractors.slice(0, 3)]) : [];
@@ -220,6 +248,7 @@ export class StudySession implements OnInit {
     if (q && q.exercise !== 'multiple_choice') setTimeout(() => this.answerInput()?.nativeElement.focus(), 50);
   }
 
+  /** Inglizcha so'zni ovoz chiqarib aytadi (yozib olingan audio bo'lsa — o'shani). */
   protected speak(slow = false): void {
     const item = this.current()?.item;
     if (!item) return;
@@ -250,9 +279,18 @@ export class StudySession implements OnInit {
     const q = this.current();
     if (!q || this.phase() !== 'question' || this.submitting() || !this.typed().trim()) return;
     const given = normalize(this.typed());
-    const target = normalize(q.item.text);
-    const correct = given === target;
-    this.submit(correct, !correct && distance(given, target) === 1);
+    // Tinglash: inglizcha eshitib, o'zbekcha tarjimalardan istalgan biri qabul qilinadi.
+    // Yozish: o'zbekcha tarjimani ko'rib, inglizcha so'z yoziladi.
+    const targets = q.exercise === 'listening' ? answerVariants(q.item.translations) : [normalize(q.item.text)];
+    const answer = q.exercise === 'listening' ? given.replace(/\s*([/,;])\s*/g, '$1') : given;
+    const exact = targets.includes(answer);
+    if (q.exercise === 'listening') {
+      // O'zbekcha tarjimada kichik imlo xatosi kechiriladi (ma'noni bilgan — to'g'ri).
+      const tolerated = !exact && targets.some((t) => distance(answer, t) <= typoAllowance(t));
+      this.submit(exact || tolerated, tolerated);
+      return;
+    }
+    this.submit(exact, !exact && targets.some((t) => distance(answer, t) === 1));
   }
 
   protected insertKey(key: string): void {

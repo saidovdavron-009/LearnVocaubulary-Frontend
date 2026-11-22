@@ -5,6 +5,7 @@ import { handleFormError } from '../../../../../core/api/problem-details';
 import { Alert } from '../../../../../shared/ui/alert/alert';
 import { Button } from '../../../../../shared/ui/button/button';
 import { Icon } from '../../../../../shared/ui/icon/icon';
+import { ImagePicker } from '../../../../../shared/ui/image-picker/image-picker';
 import { Input } from '../../../../../shared/ui/input/input';
 import { Modal } from '../../../../../shared/ui/modal/modal';
 import { Select, SelectOption } from '../../../../../shared/ui/select/select';
@@ -21,7 +22,7 @@ const CEFR_OPTIONS: SelectOption<string>[] = [
 /** "Tahrirlash" — o'z to'plamim uchun; menyu bandi va tahrirlash oynasi (PUT /api/decks/{id}). */
 @Component({
   selector: 'app-update-my-deck',
-  imports: [ReactiveFormsModule, Alert, Button, Icon, Input, Modal, Select, Toggle],
+  imports: [ReactiveFormsModule, Alert, Button, Icon, ImagePicker, Input, Modal, Select, Toggle],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'contents' },
   template: `
@@ -35,6 +36,7 @@ const CEFR_OPTIONS: SelectOption<string>[] = [
         }
         <app-input label="Nomi" formControlName="title" />
         <app-input label="Tavsif" placeholder="Ixtiyoriy" formControlName="description" />
+        <app-image-picker label="Muqova rasmi" formControlName="coverUrl" />
         <app-select label="Daraja" icon="target" [options]="cefrOptions" formControlName="cefrLevel" />
         <label class="flex items-center justify-between gap-4 rounded-input bg-page px-4 py-3">
           <span class="flex flex-col">
@@ -62,16 +64,24 @@ export class UpdateMyDeck {
   protected readonly isOpen = signal(false);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected readonly form = inject(NonNullableFormBuilder).group({
+  private readonly fb = inject(NonNullableFormBuilder);
+  protected readonly form = this.fb.group({
     title: ['', [Validators.required, Validators.maxLength(200)]],
     description: ['', [Validators.maxLength(5000)]],
     cefrLevel: [''],
+    coverUrl: this.fb.control<string | null>(null),
     isPublic: [false],
   });
 
   protected open(): void {
     const d = this.deck();
-    this.form.reset({ title: d.title, description: d.description ?? '', cefrLevel: d.cefrLevel ?? '', isPublic: d.isPublic });
+    this.form.reset({
+      title: d.title,
+      description: d.description ?? '',
+      cefrLevel: d.cefrLevel ?? '',
+      coverUrl: d.coverUrl,
+      isPublic: d.isPublic,
+    });
     this.error.set(null);
     this.isOpen.set(true);
   }
@@ -89,7 +99,7 @@ export class UpdateMyDeck {
         title: v.title.trim(),
         description: v.description.trim() || null,
         cefrLevel: (v.cefrLevel || null) as CefrLevel | null,
-        coverUrl: this.deck().coverUrl,
+        coverUrl: v.coverUrl,
         isPublic: v.isPublic,
       })
       .subscribe({

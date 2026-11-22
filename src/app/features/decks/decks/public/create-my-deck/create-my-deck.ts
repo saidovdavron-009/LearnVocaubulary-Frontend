@@ -5,6 +5,7 @@ import { CefrLevel } from '../../../../../core/api/enums';
 import { handleFormError } from '../../../../../core/api/problem-details';
 import { Alert } from '../../../../../shared/ui/alert/alert';
 import { Button } from '../../../../../shared/ui/button/button';
+import { ImagePicker } from '../../../../../shared/ui/image-picker/image-picker';
 import { Input } from '../../../../../shared/ui/input/input';
 import { Modal } from '../../../../../shared/ui/modal/modal';
 import { Select, SelectOption } from '../../../../../shared/ui/select/select';
@@ -20,7 +21,7 @@ const CEFR_OPTIONS: SelectOption<string>[] = [
 /** Figma: 08 — "Yangi to'plam +" tugmasi va yaratish oynasi (POST /api/decks). */
 @Component({
   selector: 'app-create-my-deck',
-  imports: [ReactiveFormsModule, Alert, Button, Input, Modal, Select, Toggle],
+  imports: [ReactiveFormsModule, Alert, Button, ImagePicker, Input, Modal, Select, Toggle],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'inline-flex' },
   template: `
@@ -33,6 +34,7 @@ const CEFR_OPTIONS: SelectOption<string>[] = [
         }
         <app-input label="Nomi" placeholder="Masalan: Mening oshxona so'zlarim" formControlName="title" />
         <app-input label="Tavsif" placeholder="Ixtiyoriy" formControlName="description" />
+        <app-image-picker label="Muqova rasmi" formControlName="coverUrl" />
         <div class="grid gap-4 sm:grid-cols-2">
           <app-select label="Til" icon="book" placeholder="Tanlang" [options]="languages()" formControlName="languageId" />
           <app-select label="Daraja" icon="target" [options]="cefrOptions" formControlName="cefrLevel" />
@@ -69,6 +71,7 @@ export class CreateMyDeck {
     description: ['', [Validators.maxLength(5000)]],
     languageId: this.fb.control<number | null>(null, Validators.required),
     cefrLevel: [''],
+    coverUrl: this.fb.control<string | null>(null),
     isPublic: [false],
   });
 
@@ -98,6 +101,7 @@ export class CreateMyDeck {
         title: v.title.trim(),
         description: v.description.trim() || null,
         cefrLevel: (v.cefrLevel || null) as CefrLevel | null,
+        coverUrl: v.coverUrl,
         isPublic: v.isPublic,
       })
       .subscribe({

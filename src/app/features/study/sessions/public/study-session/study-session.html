@@ -153,7 +153,7 @@
               }
             </span>
             @if (q.exercise === 'listening') {
-              <p class="text-body-lg text-fg-secondary">Eshitgan so'zingizni yozing</p>
+              <p class="text-center text-body-lg text-fg-secondary">Eshitgan so'zingizning o'zbekcha tarjimasini yozing</p>
               <div class="flex items-center gap-4">
                 <button
                   type="button"
@@ -222,7 +222,7 @@
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                   <span class="text-caption text-fg-muted">Klaviatura:</span>
-                  @for (key of specialKeys; track key) {
+                  @for (key of specialKeys(); track key) {
                     <button
                       type="button"
                       class="h-8.25 min-w-7.5 rounded-sm border-2 border-line bg-surface px-2.5 text-body-strong text-fg hover:border-line-strong disabled:opacity-50"
@@ -264,7 +264,7 @@
     </span>
     <div class="flex min-w-0 flex-1 flex-col gap-1">
       @if (fb.correct) {
-        <p class="font-display text-h2 text-mint-text">Ajoyib! To'g'ri javob</p>
+        <p class="font-display text-h2 text-mint-text">{{ fb.almost ? "To'g'ri! Faqat kichik xato bor" : "Ajoyib! To'g'ri javob" }}</p>
         <p class="text-body font-semibold text-mint-text">
           {{ q.item.text }} — {{ q.item.translations[0] }}
           @if (q.item.exampleSentence) {

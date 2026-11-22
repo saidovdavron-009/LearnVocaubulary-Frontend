@@ -2,7 +2,7 @@
 export interface UpdateMyProfileRequest {
   username: string;
   displayName?: string | null;
-  /** https bilan boshlanadigan to'liq URL. */
+  /** https bilan boshlanadigan to'liq URL yoki yuklangan rasm manzili ("/api/uploads/images/{id}"). */
   avatarUrl?: string | null;
   nativeLanguageId?: number | null;
   timezone: string;
@@ -16,6 +16,13 @@ export interface UpdateMyProfileResponse {
   avatarUrl: string | null;
   nativeLanguageId: number | null;
   timezone: string | null;
+}
+
+/** Swagger: POST /api/uploads/images → UploadImageResponse */
+export interface UploadImageResponse {
+  id: string;
+  /** Nisbiy manzil: "/api/uploads/images/{id}" — avatar sifatida shu saqlanadi. */
+  url: string;
 }
 
 /** Swagger: GET /api/languages → GetAllLanguagesResponse */

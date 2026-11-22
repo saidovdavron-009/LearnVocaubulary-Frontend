@@ -31,7 +31,8 @@ export type NotificationType =
   | 'review_due'
   | 'achievement'
   | 'friend_request'
-  | 'system';
+  | 'system'
+  | 'game_challenge';
 export type FriendshipStatus = 'pending' | 'accepted' | 'rejected' | 'blocked';
 export type DeckScope = 'all' | 'mine' | 'started' | 'public';
 export type ReportStatus = 'open' | 'resolved' | 'rejected';

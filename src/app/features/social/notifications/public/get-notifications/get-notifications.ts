@@ -31,6 +31,7 @@ const TYPE_STYLE: Record<NotificationType, { icon: IconName; box: string }> = {
   friend_request: { icon: 'users', box: 'bg-blue-soft text-blue-text' },
   achievement: { icon: 'trophy', box: 'bg-yellow-soft text-yellow-text' },
   system: { icon: 'bell', box: 'bg-muted text-fg-secondary' },
+  game_challenge: { icon: 'gamepad', box: 'bg-mint-soft text-mint-text' },
 };
 
 const WEEKDAYS = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];

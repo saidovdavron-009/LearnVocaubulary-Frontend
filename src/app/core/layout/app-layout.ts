@@ -78,6 +78,7 @@ export class AppLayout implements OnInit {
     { label: "Lug'at", icon: 'book', link: '/vocabulary' },
     { label: "To'plamlar", icon: 'layers', link: '/decks' },
     { label: "O'rganish", icon: 'play', link: '/study' },
+    { label: "O'yinlar", icon: 'gamepad', link: '/games' },
     { label: "Mening so'zlarim", icon: 'star', link: '/my-words' },
     { label: 'Statistika', icon: 'chart', link: '/stats' },
     { label: "Do'stlar", icon: 'users', link: '/friends' },

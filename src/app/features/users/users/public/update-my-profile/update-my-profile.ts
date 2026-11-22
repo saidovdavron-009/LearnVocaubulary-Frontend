@@ -18,6 +18,8 @@ import { ToastService } from '../../../../../shared/ui/toast/toast.service';
 import { UpdateMyProfileService } from './update-my-profile.service';
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_.]{3,50}$/;
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 function timezoneOptions(): SelectOption<string>[] {
   const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : ['Asia/Tashkent'];
@@ -62,6 +64,7 @@ export class UpdateMyProfile {
     avatarUrl: ['', [Validators.maxLength(2000), Validators.pattern(/^https:\/\/.+/)]],
   });
   protected readonly avatarError = signal<string | null>(null);
+  protected readonly uploading = signal(false);
 
   constructor() {
     this.service.languages().subscribe((langs) =>
@@ -103,7 +106,9 @@ export class UpdateMyProfile {
   }
 
   protected openAvatar(): void {
-    this.avatarForm.reset({ avatarUrl: this.profile()?.avatarUrl ?? '' });
+    // Yuklangan rasm manzili ("/api/uploads/...") URL maydonida ko'rsatilmaydi.
+    const current = this.profile()?.avatarUrl ?? '';
+    this.avatarForm.reset({ avatarUrl: current.startsWith('https://') ? current : '' });
     this.avatarError.set(null);
     this.avatarOpen.set(true);
   }
@@ -128,6 +133,49 @@ export class UpdateMyProfile {
       (message) => this.avatarError.set(message),
       this.avatarForm,
     );
+  }
+
+  /** Kompyuterdan tanlangan rasm: yuklanadi va darhol avatar qilib saqlanadi. */
+  protected onFileSelected(event: Event): void {
+    const inputEl = event.target as HTMLInputElement;
+    const file = inputEl.files?.[0];
+    inputEl.value = ''; // shu faylni qayta tanlash ham ishlasin
+    if (!file) return;
+
+    this.avatarError.set(null);
+    if (!IMAGE_TYPES.includes(file.type)) {
+      this.avatarError.set('Faqat JPG, PNG, WEBP yoki GIF rasm yuklash mumkin.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      this.avatarError.set('Rasm hajmi 2 MB dan oshmasligi kerak.');
+      return;
+    }
+
+    const p = this.profile();
+    if (!p) return;
+    this.uploading.set(true);
+    this.service.uploadImage(file).subscribe({
+      next: (res) => {
+        this.uploading.set(false);
+        this.save(
+          {
+            username: p.username,
+            displayName: p.displayName,
+            avatarUrl: res.url,
+            nativeLanguageId: p.nativeLanguageId,
+            timezone: p.timezone || 'Asia/Tashkent',
+          },
+          () => this.avatarOpen.set(false),
+          (message) => this.avatarError.set(message),
+          this.avatarForm,
+        );
+      },
+      error: (err: unknown) => {
+        this.uploading.set(false);
+        this.avatarError.set(handleFormError(this.avatarForm, err) ?? "Rasmni yuklab bo'lmadi.");
+      },
+    });
   }
 
   private save(
